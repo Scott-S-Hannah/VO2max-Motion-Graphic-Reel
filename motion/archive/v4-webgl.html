@@ -129,16 +129,15 @@
 
   <aside class="side">
     <div>
-      <div class="eyebrow">Motion reel · v5 · WebGL</div>
+      <div class="eyebrow">Motion reel · v4 · WebGL</div>
       <h1>What is <em>V̇O₂max?</em></h1>
     </div>
-    <p>Oxygen as light. A real 3D camera with depth of field flies through thousands of particles. The type is lit by the scene. Each act has its own colour, and everything is rendered live on the GPU and cut to the soundtrack. Press play with sound on, scrub, or jump to a beat.</p>
+    <p>Oxygen as light. Thousands of particles, bloom, shockwaves and variable-weight type, rendered live on the GPU and cut to the soundtrack. Press play with sound on, scrub, or jump to a beat.</p>
     <ol class="shots" id="shots"></ol>
-    <div class="note">Everything is a pure function of time, so any frame can be rendered exactly: <code>reel.seek(t)</code>, or <code>reel.renderBlur(t)</code> for export with sub-frame motion blur, at 1080 × 1920, 30 fps. Live quality adapts to the device.</div>
+    <div class="note">Everything is a pure function of time, so any frame can be rendered exactly for export with <code>reel.seek(t)</code> at 1080 × 1920, 30 fps.</div>
   </aside>
 </div>
 <audio id="track" src="assets/track.mp3" preload="auto"></audio>
-
 
 <script>
 (async () => {
@@ -150,7 +149,7 @@ await document.fonts.ready;
 const logo = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = 'assets/logo-white.png'; });
 
 /* ================================================================ time + maths */
-const DUR = 30, FPS = 30, W = 1080, H = 1920, F = 1800;   // F: focal length in px (≈56° vertical field of view)
+const DUR = 30, FPS = 30, W = 1080, H = 1920;
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const P = (t, a, b) => clamp((t - a) / (b - a));
@@ -164,90 +163,42 @@ const E = {
 };
 const smin = (a, b, k) => -Math.log(Math.exp(-k * a) + Math.exp(-k * b)) / k;
 const h = (i, k = 0) => { const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return s - Math.floor(s); };
+const vn = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(h(i, 91), h(i + 1, 91), u); };
 const frac = x => x - Math.floor(x);
 function beatEnv(t, t0) { const m = ((t - t0) % .5 + .5) % .5; return [Math.exp(-Math.pow(m / .06, 2)), .55 * Math.exp(-Math.pow((m - .18) / .05, 2))]; }
 
 const LIME = [.83, .94, .44], VIOLET = [.66, .45, 1.0], WHITE = [1, 1, 1], PINK = [1.0, .45, .85];
-const BLUE = [.38, .58, 1], CYAN = [.45, .9, 1], CORAL = [1, .42, .36], WARM = [1, .86, .74], GOLD = [1, .8, .42];
 const mix3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
 
-/* ================================================================ colour script: every act has its own temperature */
-const ACT_A = { b0: [.012, .006, .028], b1: [.07, .03, .14], n1: [.32, .12, .62], n2: [.35, .45, .12], dust: [.72, .6, 1], sh: [.012, 0, .03], hi: [1, 1, 1] };
-const ACTS = [   // start, palette, blend-in seconds
-  [0, ACT_A, 0],
-  [4.45, { b0: [.003, .01, .03], b1: [.015, .05, .15], n1: [.05, .2, .66], n2: [.04, .5, .6], dust: [.55, .78, 1], sh: [0, .01, .035], hi: [.96, 1, 1.05] }, .6],     // the curve: cool
-  [10.0, ACT_A, .25],                                                                                                                                                  // the name: violet + lime
-  [15.3, { b0: [.03, .004, .012], b1: [.17, .025, .06], n1: [.78, .07, .2], n2: [.85, .35, .08], dust: [1, .62, .55], sh: [.03, 0, .008], hi: [1.06, .99, .95] }, .12], // the heart: warm
-  [20.95, { b0: [.002, .012, .02], b1: [.01, .07, .1], n1: [.02, .32, .46], n2: [.08, .45, .52], dust: [.5, .9, 1], sh: [0, .015, .025], hi: [.95, 1.02, 1.05] }, .95],   // the test: clinical
-  [26.0, { b0: [.02, .012, .003], b1: [.11, .065, .02], n1: [.52, .3, .05], n2: [.5, .62, .12], dust: [1, .88, .55], sh: [.025, .012, 0], hi: [1.05, 1.02, .93] }, .7],   // the payoff: gold
-];
-function paletteAt(t) {
-  let i = 0; ACTS.forEach(([t0], k) => { if (t >= t0) i = k; });
-  const cur = ACTS[i][1]; if (!i) return cur;
-  const k = E.ioC(P(t, ACTS[i][0], ACTS[i][0] + ACTS[i][2])), prev = ACTS[i - 1][1], o = {};
-  for (const key in cur) o[key] = mix3(prev[key], cur[key], k);
-  return o;
-}
-
 /* ================================================================ story state (all pure functions of t) */
-// impacts: time, world x, y, strength: drive shake, shockwaves, flashes and chromatic aberration
-const IMPACTS = [[.95, 540, 648, 1], [2.0, 540, 500, .45], [8.4, 540, 560, .45], [10.0, 540, 900, .7], [15.3, 540, 960, 1], [21.25, 540, 760, .35], [25.0, 800, 803, .9], [27.0, 540, 1012, .9]];
-const FLASH = { 15.3: .6 };
+// impacts: time, world x, y, strength — drive shake, shockwaves, flashes and chromatic aberration
+const IMPACTS = [[.95, 540, 648, 1], [2.0, 540, 500, .45], [8.4, 540, 560, .45], [10.0, 540, 900, .7], [15.3, 540, 960, 1], [21.25, 540, 760, 1], [25.0, 800, 803, .9], [27.0, 540, 1012, .9]];
+const FLASH = { 15.3: .6, 21.25: .3 };
 
 // head of the oxygen curve (0..1)
 const headP = t => (t < 4.95 ? 0 : t < 7.9 ? .8 * E.inQ(P(t, 4.95, 7.9)) : .8 + .2 * E.outQ(P(t, 7.9, 8.8)));
 const CX = s => 120 + s * 860, CFY = s => smin(.05 + 1.08 * s, .92, 30), CY = s => 1380 - CFY(s) * 800;
-// the test chart (on the same world plane)
-const TX = v => lerp(110, 980, v), TY = v => 1330 - v / .95 * 560;
-const trendV = u => smin(.1 + .95 * u, .8, 22);
-const BR = []; { for (let i = 0; i < 96; i++) { const u = i / 95; BR.push([u, trendV(u) + ((h(i, 61) + h(i, 62) + h(i, 63)) - 1.5) * .05]); } }
-
-/* ---- camera: a real perspective camera orbiting a target on the story plane (z = 0) */
-const mm = (A, B) => { const R = new Array(9); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) R[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j]; return R; };
-function camFin(c) {
-  const cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), cp = Math.cos(c.pitch), sp = Math.sin(c.pitch), cr = Math.cos(c.r), sr = Math.sin(c.r);
-  const M = mm([cr, -sr, 0, sr, cr, 0, 0, 0, 1], mm([1, 0, 0, 0, cp, -sp, 0, sp, cp], [cy, 0, sy, 0, 1, 0, -sy, 0, cy]));
-  c.M = M; c.D = F / c.z; c.Mgl = [M[0], M[3], M[6], M[1], M[4], M[7], M[2], M[5], M[8]];
-  return c;
-}
-function view(c, x, y, z = 0) { const px = x - c.x, py = y - c.y, M = c.M; return [M[0] * px + M[1] * py + M[2] * z, M[3] * px + M[4] * py + M[5] * z, M[6] * px + M[7] * py + M[8] * z + c.D]; }
-function toScreen(c, x, y, z = 0) { const v = view(c, x, y, z); return [540 + F * v[0] / v[2], 960 + F * v[1] / v[2], v[2]]; }
 
 function camAt(t) {
-  let x = 540, y = 960, z = 1, r = 0, aper = 16;
-  // never quite static: a slow handheld drift
-  let yaw = .03 * Math.sin(t * .41 + 1.3) + .012 * Math.sin(t * 1.13), pitch = .022 * Math.sin(t * .33 + .4) + .01 * Math.sin(t * 1.37 + 2);
-  // hook: a low angle looking up the photon's path, levelling out on the impact
-  const lv = 1 - E.outC(P(t, 0, 1.4)); pitch -= .15 * lv; z *= 1 + .06 * lv;
-  // the curve: ride the oxygen up, with the path ahead receding into depth
+  let x = 540, y = 960, z = 1, r = 0;
+  // follow the oxygen up the curve
   const fol = E.ioC(P(t, 4.9, 5.6)) * (1 - E.ioC(P(t, 7.95, 8.9)));
   const p = headP(t);
-  x = lerp(x, CX(p) + 90, fol); y = lerp(y, CY(p) - 40, fol); z = lerp(z, 1.34, fol); r = -.035 * fol;
-  yaw -= .24 * fol; pitch -= .07 * fol;
-  // time stops: bullet-time orbit around the frozen river, swinging back square as the name forms
-  const orb = E.ioC(P(t, 8.45, 9.95)) * (1 - E.ioQ5(P(t, 10.0, 10.75)));
-  yaw += .44 * orb; pitch += .05 * orb; z *= 1 + .1 * orb; aper = lerp(aper, 34, orb);
+  x = lerp(x, CX(p) + 90, fol); y = lerp(y, CY(p) - 40, fol); z = lerp(1, 1.34, fol); r = -.035 * fol;
+  // freeze: slow push while time stops
+  z *= 1 + .05 * E.ioC(P(t, 8.45, 9.95)) * (1 - P(t, 9.95, 10.05));
   // the name: slow push, then dive through the O
   if (t >= 10 && t < 15.3) {
     z *= 1 + .06 * E.ioC(P(t, 10.8, 14.7));
-    yaw += .05 * Math.sin((t - 10.7) * .55) * P(t, 10.7, 11.6);
-    const e = E.inE(P(t, 14.75, 15.3)), m = E.outC(P(t, 14.75, 15.3));
-    x = lerp(x, O_STROKE[0], m); y = lerp(y, O_STROKE[1], m); z = lerp(z, 44, e); aper = lerp(aper, 40, m);
+    const e = E.inE(P(t, 14.75, 15.3));
+    x = lerp(x, O_STROKE[0], E.outC(P(t, 14.75, 15.3))); y = lerp(y, O_STROKE[1], E.outC(P(t, 14.75, 15.3)));
+    z = lerp(z, 44, e);
   }
-  // the heart: float and roll
-  if (t >= 15.3 && t < 21.3) { y += Math.sin(t * .9) * 10; r = .03 * Math.sin(t * .6); z = 1 + .04 * E.ioC(P(t, 15.3, 21)); yaw += .07 * Math.sin(t * .5); pitch += .04 * Math.sin(t * .37); aper = 22; }
-  // the test: track the head of the trend across the plane, the history receding behind it; whip back square for the slam
-  if (t >= 20.95 && t < 26.6) {
-    const u = P(t, 22.3, 24.7), hx = TX(u) + 70, hy = TY(trendV(u)) - 60;
-    const inn = E.ioC(P(t, 20.95, 22.0)), out = E.ioQ5(P(t, 24.72, 25.05));
-    x = lerp(lerp(x, hx, inn), 540, out); y = lerp(lerp(y, hy, inn), 960, out);
-    z = lerp(lerp(z, 1.5, inn), 1, out) * (1 + .04 * E.ioC(P(t, 25.05, 26.4)));
-    yaw = lerp(lerp(yaw, .56, inn), yaw * .4, out); pitch = lerp(lerp(pitch, -.07, inn), pitch * .4, out); r = lerp(r, 0, inn);
-    aper = lerp(lerp(aper, 30, inn), 16, out);
-  }
-  // payoff: look up at the ceiling as it is pushed higher
-  if (t >= 26) { pitch -= .1 * E.ioC(P(t, 26.4, 27.3)); z *= 1 + .05 * E.ioC(P(t, 26, 29.5)); aper = 18; }
-  return camFin({ x, y, z, r, yaw, pitch, aper });
+  // the heart: gentle float and roll
+  if (t >= 15.3 && t < 21.3) { y += Math.sin(t * .9) * 10; r = .03 * Math.sin(t * .6); z = 1 + .04 * E.ioC(P(t, 15.3, 21)); }
+  // the test: slow push
+  if (t >= 21.3 && t < 26) z = 1 + .05 * E.ioC(P(t, 21.3, 26));
+  return { x, y, z, r };
 }
 function shakeAt(t) {
   let sx = 0, sy = 0;
@@ -256,10 +207,11 @@ function shakeAt(t) {
 }
 function ceilAt(t) {
   let x0 = 280, x1 = 800, y = -80, th = 13, a = 1;
-  if (t < .95) { y = lerp(170, 648, E.inC(P(t, 0, .95))); const e = E.outC(P(t, 0, .5)); x0 = lerp(440, 280, e); x1 = lerp(640, 800, e); }
+  if (t < .45) a = 0;
+  else if (t < .95) y = lerp(-80, 648, E.inC(P(t, .45, .95)));
   else if (t < 4.0) y = 648;
   else if (t < 9.9) { const e = E.ioC(P(t, 4, 4.7)); x0 = lerp(280, 60, e); x1 = lerp(800, 1020, e); y = lerp(648, 612, e); }
-  else if (t < 15.3) { const e = E.ioQ5(P(t, 9.9, 10.45)); x0 = lerp(60, 110, e); x1 = lerp(1020, 970, e); y = lerp(612, 1068, e); th = lerp(13, 11, e); }
+  else if (t < 15.3) { const e = E.ioQ5(P(t, 9.9, 10.45)); x0 = lerp(60, 110, e); x1 = lerp(1020, 970, e); y = lerp(612, 1030, e); th = lerp(13, 11, e); }
   else if (t < 24.75) a = 0;
   else if (t < 26) { x0 = 700; x1 = 980; th = 10; y = lerp(-80, 803, E.inC(P(t, 24.75, 25))); }
   else { const e = E.ioQ5(P(t, 26, 26.55)); x0 = lerp(700, 190, e); x1 = lerp(980, 890, e); th = lerp(10, 13, e); y = lerp(803, 1012, e); y = lerp(y, 812, E.elastic(P(t, 27, 28.1), .45)); a = 1 - P(t, 29.3, 29.9); }
@@ -270,8 +222,9 @@ function ceilAt(t) {
 function photonAt(t) {
   let x = 540, y = 1500, sx = 1, sy = 1, a = 0;
   if (t < 4.95) {
-    a = 1;
-    if (t < .95) { const e = Math.pow(P(t, -.4, .95), 3); y = 1760 - 1091 * e; sx = .75; sy = 1.6; }   // already in flight on frame 0
+    a = P(t, 0, .12);
+    if (t < .33) { const e = E.outQ(P(t, .05, .31)); sx = lerp(1, 1.4, e); sy = lerp(1, .6, e); }
+    else if (t < .95) { const e = E.inE(P(t, .33, .95)); y = 1500 - 831 * e; sx = .7; sy = 1.7; }
     else if (t < 4.0) { y = 669; const e = E.elastic(P(t, .95, 1.6), .35); sx = lerp(1.9, 1, e); sy = lerp(.45, 1, e); }
     else if (t < 4.45) { y = 669 + 711 * E.inQ(P(t, 4, 4.45)); sy = 1.3; sx = .8; }
     else { y = 1380; x = lerp(540, 120, E.ioC(P(t, 4.5, 4.92))); const e = E.elastic(P(t, 4.45, 4.95), .4); sx = lerp(1.6, 1, e); sy = lerp(.6, 1, e); }
@@ -284,13 +237,12 @@ function photonAt(t) {
   return { x, y, sx, sy, a };
 }
 function heartAt(t) {
-  if (t < 15.3 || t > 21.3) return { r: 0, beat: 0, k: 0 };
-  let r = 210 * E.back(P(t, 15.32, 15.9), 1.8), beat = 0, k = .18;
-  if (t >= 16 && t < 20.85) { const [l, d] = beatEnv(t, 16); beat = l + d; r *= 1 + .1 * l + .05 * d; k += .62 * l + .3 * d; }
+  if (t < 15.3 || t > 21.3) return { r: 0, beat: 0 };
+  let r = 210 * E.back(P(t, 15.32, 15.9), 1.8), beat = 0;
+  if (t >= 16 && t < 20.85) { const [l, d] = beatEnv(t, 16); beat = l + d; r *= 1 + .1 * l + .05 * d; }
   r *= 1 + .25 * E.outQ(P(t, 20.85, 20.95));
-  k = lerp(k, .9, E.outQ(P(t, 20.8, 20.95)));
-  r *= 1 - E.inC(P(t, 20.95, 21.3));
-  return { r: Math.max(0, r), beat, k };
+  r *= 1 - E.inC(P(t, 20.95, 21.25));
+  return { r: Math.max(0, r), beat };
 }
 const HC = [540, 760];
 
@@ -301,7 +253,7 @@ const VO = (() => {
   const fV = `800 ${BIG}px Figtree`, fS = `800 ${BIG * .5}px Figtree`, fM = `italic 600 ${BIG * .5}px Figtree`;
   m.font = fV; const wV = m.measureText('V').width, wO = m.measureText('O').width;
   m.font = fS; const w2 = m.measureText('2').width; m.font = fM; const wM = m.measureText('max').width;
-  const x = 540 - (wV + wO + w2 + wM + 12) / 2;
+  let x = 540 - (wV + wO + w2 + wM + 12) / 2;
   const P_ = [{ s: 'V', f: fV, x, y: TB, piece: 0, col: '#d4ef70' }];
   const xO = x + wV; P_.push({ s: 'O', f: fV, x: xO, y: TB, piece: 1, col: '#d4ef70' }, { s: '2', f: fS, x: xO + wO, y: TB + BIG * .16, piece: 1, col: '#d4ef70' });
   const xM = xO + wO + w2 + 12; P_.push({ s: 'max', f: fM, x: xM, y: TB + BIG * .16, piece: 2, col: '#ffffff' });
@@ -320,79 +272,61 @@ const TARGETS = (() => {
   return out;
 })();
 
-/* ================================================================ particles (3D segments, drawn as motion-streaked light with depth of field) */
-const MAXP = 7000, STRIDE = 12;
+/* ================================================================ particles */
+const MAXP = 6000, STRIDE = 10;
 const pbuf = new Float32Array(MAXP * STRIDE);
 let np = 0;
-function push(x0, y0, x1, y1, c, a, size, shape = 0, z0 = 0, z1 = z0) {
+function push(x0, y0, x1, y1, c, a, size, shape = 0) {
   if (a <= .004 || np >= MAXP) return;
   const o = np * STRIDE;
-  pbuf[o] = x0; pbuf[o + 1] = y0; pbuf[o + 2] = z0; pbuf[o + 3] = x1; pbuf[o + 4] = y1; pbuf[o + 5] = z1;
-  pbuf[o + 6] = c[0]; pbuf[o + 7] = c[1]; pbuf[o + 8] = c[2]; pbuf[o + 9] = a;
-  pbuf[o + 10] = size; pbuf[o + 11] = shape; np++;
+  pbuf[o] = x0; pbuf[o + 1] = y0; pbuf[o + 2] = x1; pbuf[o + 3] = y1;
+  pbuf[o + 4] = c[0]; pbuf[o + 5] = c[1]; pbuf[o + 6] = c[2]; pbuf[o + 7] = a;
+  pbuf[o + 8] = size; pbuf[o + 9] = shape; np++;
 }
-const dot = (x, y, c, a, s, shape = 0, z = 0) => push(x, y, x, y, c, a, s, shape, z, z);
+const dot = (x, y, c, a, s, shape = 0) => push(x, y, x, y, c, a, s, shape);
 
 function streamPos(i, te, head, c) {
   const u = frac(h(i, 1) + (.2 + .22 * h(i, 2)) * te * .9);
   const s = u * head;
   const x = CX(s), y = CY(s), x2 = CX(s + .003), y2 = CY(s + .003);
-  let dx = x2 - x, dy = y2 - y; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+  let tx = x2 - x, ty = y2 - y; const L = Math.hypot(tx, ty) || 1; tx /= L; ty /= L;
   const width = 8 + 95 * s * s + 30 * s;
   const off = (h(i, 3) - .5) * 2 * width * (.65 + .35 * Math.sin(te * 3 + h(i, 4) * 6.28));
-  const offz = (h(i, 8) - .5) * 2 * width * (.7 + .3 * Math.cos(te * 2.3 + h(i, 9) * 6.28));   // the river is a tube, not a ribbon
-  let px = x - dy * off, py = y + dx * off;
+  let px = x - ty * off, py = y + tx * off;
   const floor = c.y + c.th / 2 + 6;
   if (py < floor + 30 && s > .6) py = floor + Math.abs(py - floor) * .35 + (h(i, 5) * 22);   // pressed flat under the ceiling
-  return [px, py, offz, s, u];
+  return [px, py, s, u];
 }
-const streamCol = s => (s > .72 ? mix3(WHITE, LIME, P(s, .72, .9)) : mix3(BLUE, WHITE, s / .72));
 const teAt = t => (t < 8.4 ? t : t < 10 ? 8.4 + (t - 8.4) * .035 : 8.456);
 
 function sparks(t, ti, x, y, n, seed, spread = [.12, .88], spd = [300, 1000]) {
   const age = t - ti; if (age < 0 || age > 1.2) return;
   for (let j = 0; j < n; j++) {
-    const ang = Math.PI * lerp(spread[0], spread[1], h(j, seed)), v = lerp(spd[0], spd[1], h(j, seed + 1)), k = 4 + 3 * h(j, seed + 2), life = .5 + .6 * h(j, seed + 3), zd = (h(j, seed + 6) - .5) * 1.4;
+    const ang = Math.PI * lerp(spread[0], spread[1], h(j, seed)), v = lerp(spd[0], spd[1], h(j, seed + 1)), k = 4 + 3 * h(j, seed + 2), life = .5 + .6 * h(j, seed + 3);
     if (age > life) continue;
-    const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x + Math.cos(ang) * v * d, y + Math.sin(ang) * v * d + 700 * a * a, zd * v * d]; };
-    const [x1, y1, z1] = pos(age), [x0, y0, z0] = pos(Math.max(0, age - .03));
-    push(x0, y0, x1, y1, h(j, seed + 4) < .5 ? LIME : WHITE, (1 - age / life) * .9, 2.5 + 3 * h(j, seed + 5), 0, z0, z1);
+    const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x + Math.cos(ang) * v * d, y + Math.sin(ang) * v * d + 700 * a * a]; };
+    const [x1, y1] = pos(age), [x0, y0] = pos(Math.max(0, age - .03));
+    push(x0, y0, x1, y1, h(j, seed + 4) < .5 ? LIME : WHITE, (1 - age / life) * .9, 2.5 + 3 * h(j, seed + 5));
   }
 }
 
-// the heart's six vessels (3D arcs); frozen at 20.95 when the heart lets go and its light becomes the test's lattice
-const ZD = [-1, .7, -.45, 1, -.8, .35];
-const surge = tt => { if (tt < 16) return 0; const k = Math.min(10, Math.floor((tt - 16) / .5)); const f = frac((tt - 16) / .5); return .11 * (k + (k < 10 ? E.outC(clamp(f / .35)) : 0)); };
-function vesselPos(i, tt, hr) {
-  const k = i % 6, base = -Math.PI / 2 + k * Math.PI / 3 + (h(i, 33) - .5) * .28, bend = (k % 2 ? 1 : -1) * .55;
-  const s = frac(h(i, 30) + (.13 + .1 * h(i, 31)) * (tt - 15.3) + surge(tt));
-  const ang = base + bend * s, rr = Math.max(hr, 60) * .92 + s * 1150;
-  return [HC[0] + Math.cos(ang) * rr, HC[1] + Math.sin(ang) * rr, ZD[k] * s * s * 900, s];
-}
-const lattice = i => (i % 3 === 0 ? [110 + ((i / 3 | 0) % 16) * 58, 760 + h(i, 38) * 570] : [110 + h(i, 38) * 870, 1330 - (i % 11) * 57]);
-function morphPos(i, tt) {
-  // two moves: the light implodes along the vessels into one point, then unfolds from it into the lattice
-  const [vx, vy, vz] = vesselPos(i, 20.95, heartAt(20.95).r), [lx, ly] = lattice(i);
-  const e1 = E.inC(P(tt, 20.95, 21.25)), d = .22 * h(i, 36) + .12 * Math.hypot(lx - HC[0], ly - HC[1]) / 700, e2 = E.outE(P(tt, 21.25 + d, 21.95 + d));
-  const cx = lerp(vx, HC[0], e1), cy = lerp(vy, HC[1], e1), cz = lerp(vz, 0, e1);
-  return [lerp(cx, lx, e2), lerp(cy, ly, e2), cz - Math.sin(Math.PI * e2) * 380 * h(i, 37), e2];
-}
-function buildParticles(t, cam, pal) {
+function buildParticles(t) {
   np = 0;
-  const c = ceilAt(t);
-  // ambient dust: a real volume in front of and behind the story plane (parallax and bokeh come from the camera)
-  const dim = 1 - .6 * P(t, 15.3, 15.6) * (1 - P(t, 21.0, 21.6));
-  for (let i = 0; i < 900; i++) {
-    const z = lerp(-1150, 2600, Math.pow(h(i, 11), 1.25));
-    const x = h(i, 12) * 3000 - 960 + Math.sin(t * .35 + i) * 14;
-    let y = h(i, 13) * 3600 - 840 - t * (10 + 22 * h(i, 16)); y = ((y + 840) % 3600 + 3600) % 3600 - 840;
+  const cam = camAt(t), c = ceilAt(t);
+  // ambient dust with parallax
+  for (let i = 0; i < 520; i++) {
+    const z = .25 + .75 * h(i, 11);
+    const bx = h(i, 12) * 1400 - 160 + Math.sin(t * .35 + i) * 14 * z;
+    let by = h(i, 13) * 2400 - 240 - t * (6 + 22 * z); by = ((by + 240) % 2400 + 2400) % 2400 - 240;
+    const px = bx + (cam.x - 540) * (1 - z * .6), py = by + (cam.y - 960) * (1 - z * .6);
     const tw = .6 + .4 * Math.sin(t * (1 + h(i, 14) * 3) + i);
-    dot(x, y, mix3(pal.dust, WHITE, h(i, 15) * .5), (.1 + .26 * h(i, 17)) * tw * dim, 1.5 + 2.2 * h(i, 18), 0, z);
+    dot(px, py, mix3(VIOLET, WHITE, h(i, 15) * .6), (.08 + .28 * z) * tw * (1 - .7 * P(t, 15.3, 15.6) * (1 - P(t, 21.2, 21.4))), (1.2 + 3 * z) / cam.z);
   }
   // the oxygen photon: comet core, glow and trail
   const ph = photonAt(t);
   if (ph.a > 0) {
-    if (t < 4.45 || (t > 26.72 && t < 27.8)) push(540, 2000, 540, ph.y, WHITE, .5 * ph.a, 3.2);   // the line of light it rides
+    // the laser line it rides up on
+    if ((t > .33 && t < 4.45) || (t > 26.72 && t < 27.8)) push(540, 1500, 540, ph.y, WHITE, .55 * ph.a, 3.2);
     for (let k = 0; k < 14; k++) {
       const a = photonAt(t - k * .012), b = photonAt(t - (k + 1) * .012);
       if (a.a <= 0 || b.a <= 0) break;
@@ -405,94 +339,83 @@ function buildParticles(t, cam, pal) {
   sparks(t, 25.0, 840, 812, 70, 30);
   sparks(t, 27.0, 540, 1024, 90, 40);
 
-  // a floor of light where the photon lands; the river climbs from it
-  if (t >= 4.4 && t < 10.2) {
-    const on = E.outC(P(t, 4.45, 5.2)) * (1 - P(t, 9.95, 10.15));
-    for (let i = 0; i < 160; i++) { const u = i / 159; if (u > on) break; dot(lerp(120, 1000, u), 1380 + 6, mix3(BLUE, WHITE, .4), .16 * (.6 + .4 * Math.sin(teAt(t) * 4 + i * .7)) * (1 - u * .5), 2.2); }
-  }
   // oxygen stream up the curve, freezing at "until you can't"
   if (t >= 4.95 && t < 10.0) {
     const te = teAt(t), head = headP(t), frozen = t >= 8.4;
     for (let i = 0; i < NS; i++) {
-      const [x, y, z, s, u] = streamPos(i, te, head, c);
+      const [x, y, s, u] = streamPos(i, te, head, c);
       if (u < .01) continue;
-      const [x0, y0, z0] = frozen ? [x, y, z] : streamPos(i, te - .035, head, c);
-      push(x0, y0, x, y, streamCol(s), (.1 + .34 * h(i, 6)) * P(u, .01, .06) * (frozen ? .9 : 1), 1.8 + 3.4 * h(i, 7) * (.5 + s), 0, z0, z);
+      const [x0, y0] = frozen ? [x, y] : streamPos(i, te - .035, head, c);
+      const col = s > .72 ? mix3(WHITE, LIME, P(s, .72, .9)) : mix3(VIOLET, WHITE, s / .72);
+      push(x0, y0, x, y, col, (.1 + .34 * h(i, 6)) * P(u, .01, .06) * (frozen ? .9 : 1), 1.8 + 3.4 * h(i, 7) * (.5 + s));
     }
   }
-  // the stream condenses into the word, swooping through depth
+  // the stream condenses into the word
   if (t >= 10.0 && t < 15.3) {
     const cc = ceilAt(9.99);
     for (let i = 0; i < NS; i++) {
-      const [sx0, sy0, sz0, ss0] = streamPos(i, teAt(9.99), 1, cc), [tx, ty, piece] = TARGETS[i], tz = (h(i, 25) - .5) * 16;
+      const [sx0, sy0] = streamPos(i, teAt(9.99), 1, cc), [tx, ty, piece] = TARGETS[i];
       const d = .32 * (tx - 150) / 780 + .12 * h(i, 21);
-      const at = tt => {
-        const e = E.outE(P(tt, 10.0 + d, 10.0 + d + .8));
-        const sw = Math.sin(Math.PI * e) * (h(i, 22) - .5) * 260, dx = tx - sx0, dy = ty - sy0, L = Math.hypot(dx, dy) || 1;
-        return [lerp(sx0, tx, e) - dy / L * sw, lerp(sy0, ty, e) + dx / L * sw, lerp(sz0, tz, e) - Math.sin(Math.PI * e) * (h(i, 26) - .35) * 560, e];
-      };
-      const [x, y, z, e] = at(t), [x0, y0, z0] = at(t - .03);
+      const e = E.outE(P(t, 10.0 + d, 10.0 + d + .8));
+      const sw = Math.sin(Math.PI * e) * (h(i, 22) - .5) * 260;
+      const dx = tx - sx0, dy = ty - sy0, L = Math.hypot(dx, dy) || 1;
       const shim = e >= 1 ? Math.sin(t * 5 + i) * 1.2 : 0;
-      let active = 1;
+      const x = lerp(sx0, tx, e) - dy / L * sw + shim, y = lerp(sy0, ty, e) + dx / L * sw;
+      const ep = E.outE(P(t - .03, 10.0 + d, 10.0 + d + .8));
+      const x0 = lerp(sx0, tx, ep) - dy / L * Math.sin(Math.PI * ep) * (h(i, 22) - .5) * 260, y0 = lerp(sy0, ty, ep) + dx / L * Math.sin(Math.PI * ep) * (h(i, 22) - .5) * 260;
+      let a = .75, active = 1;
       if (t >= 11.4 && t < 14.1) { const k = t < 12.3 ? 0 : t < 13.2 ? 1 : 2; active = piece === k ? 1.35 : .25; }
       const arrive = 1 - P(t, 10.0 + d + .5, 10.0 + d + 1.0);
-      const col = mix3(streamCol(ss0), piece === 2 ? WHITE : mix3(LIME, WHITE, .25 * h(i, 23)), clamp(e * 1.5));
-      push(x0 + shim, y0, x + shim, y, col, .75 * active * (1 - P(t, 15.25, 15.35)), 2 + 2.5 * h(i, 24) + 3 * arrive * (e > .6 ? 1 : 0), 0, z0, z);
+      push(x0, y0, x, y, piece === 2 ? WHITE : mix3(LIME, WHITE, .25 * h(i, 23)), a * active * (1 - P(t, 15.25, 15.35)), 2 + 2.5 * h(i, 24) + 3 * arrive * (e > .6 ? 1 : 0));
     }
   }
   // the heart pumps oxygen out along six vessels, surging on every beat
   const hs = heartAt(t);
-  if (t >= 15.3 && t < 20.95) {
+  if (t >= 15.3 && t < 21.3) {
+    const surge = tt => { if (tt < 16) return 0; const k = Math.min(10, Math.floor((tt - 16) / .5)); const f = frac((tt - 16) / .5); return .11 * (k + (k < 10 ? E.outC(clamp(f / .35)) : 0)); };
+    const S = surge(t), S0 = surge(t - .03), imp = E.inC(P(t, 20.95, 21.25));
     for (let i = 0; i < 2400; i++) {
-      const [x, y, z, s] = vesselPos(i, t, hs.r), [x0, y0, z0, s0] = vesselPos(i, t - .03, heartAt(t - .03).r);
-      const cont = s0 < s;
-      push(cont ? x0 : x, cont ? y0 : y, x, y, mix3(CORAL, WARM, h(i, 34) * .6), Math.pow(1 - s, 1.4) * .75 * P(t, 15.6, 16.2), 2.2 + 3.5 * h(i, 35), 0, cont ? z0 : z, z);
+      const k = i % 6, base = -Math.PI / 2 + k * Math.PI / 3 + (h(i, 33) - .5) * .28, bend = (k % 2 ? 1 : -1) * .55;
+      const v = .13 + .1 * h(i, 31);
+      const s = frac(h(i, 30) + v * (t - 15.3) + S), s0 = frac(h(i, 30) + v * (t - .03 - 15.3) + S0);
+      const pos = ss => { const ang = base + bend * ss; const rr = Math.max(hs.r, 60) * .92 + ss * 1150; return [HC[0] + Math.cos(ang) * rr, HC[1] + Math.sin(ang) * rr]; };
+      let [x, y] = pos(s), [x0, y0] = s0 < s ? pos(s0) : [x, y];
+      x = lerp(x, HC[0], imp); y = lerp(y, HC[1], imp); x0 = lerp(x0, HC[0], imp); y0 = lerp(y0, HC[1], imp);
+      push(x0, y0, x, y, mix3(LIME, WHITE, h(i, 34) * .5), Math.pow(1 - s, 1.4) * .75 * P(t, 15.6, 16.2), 2.2 + 3.5 * h(i, 35));
     }
     // a pressure wave rides out on every beat
-    for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age < 0 || age > .9) continue; dot(HC[0], HC[1], mix3([1, .35, .45], WHITE, .3), (1 - age / .9) * .35, hs.r + 40 + age * 900, 1); }
+    for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age < 0 || age > .9) continue; dot(HC[0], HC[1], mix3(PINK, WHITE, .3), (1 - age / .9) * .35, hs.r + 40 + age * 900, 1); }
   }
-  // the heart lets go: its light flies out and settles into the measurement lattice
-  if (t >= 20.95 && t < 26.45) {
-    const fade = 1 - P(t, 26, 26.4), pt = P(t, 21.1, 21.25) * (1 - P(t, 21.3, 21.7));
-    if (pt > 0) { dot(HC[0], HC[1], WARM, .6 * pt, 90); dot(HC[0], HC[1], WHITE, pt, 16); }   // the point of light between the two moves
-    for (let i = 0; i < 2400; i++) {
-      const [x, y, z, e] = morphPos(i, t), [x0, y0, z0] = morphPos(i, t - .03);
-      const s = vesselPos(i, 20.95, 0)[3], a0 = Math.pow(1 - s, 1.4) * .75, a1 = (.16 + .08 * Math.sin(t * 3 + i * 1.7)) * (i % 3 === 0 ? 1.3 : 1);
-      push(x0, y0, x, y, mix3(mix3(CORAL, WARM, h(i, 34) * .6), CYAN, e), lerp(a0, a1, e) * fade, lerp(2.2 + 3.5 * h(i, 35), 1.7, e), 0, z0, z);
-    }
-  }
-  // breath by breath: every breath drops onto the plane as a pulse; the trend is drawn in light
-  if (t >= 22.3 && t < 26.6) {
+  // breath by breath: every breath lands as a pulse; the trend is drawn in light
+  if (t >= 21.3 && t < 26.6) {
     const u = P(t, 22.3, 24.7), fadeOut = 1 - P(t, 26, 26.4);
-    BR.forEach(([bu, bv]) => {
-      const age = (u - bu) * 2.4; if (age < 0) return;
-      const land = E.outC(clamp(age / .14)), z = -460 * (1 - land), X = TX(bu), Y = TY(bv);
-      if (land < 1) push(X, Y, X, Y, CYAN, .5 * fadeOut, 5, 0, z - 90 * (1 - land), z);
-      dot(X, Y, mix3(CYAN, WHITE, .5), .9 * fadeOut, 7 + 14 * Math.max(0, 1 - age / .2), 0, z);
-      if (age < .45 && land >= 1) dot(X, Y, CYAN, Math.pow(1 - age / .45, 2) * .45 * fadeOut, 10 + age * 120, 1);
+    const TX = v => lerp(110, 980, v), TY = v => 1330 - v / .95 * 560;
+    BR.forEach(([bu, bv], i) => {
+      const age = (u - bu) * 2.4; if (age < 0 || t < 22.3) return;
+      dot(TX(bu), TY(bv), mix3(VIOLET, WHITE, .45), .9 * fadeOut, 7 + 14 * Math.max(0, 1 - age / .2));
+      if (age < .45) dot(TX(bu), TY(bv), VIOLET, Math.pow(1 - age / .45, 2) * .45 * fadeOut, 10 + age * 120, 1);
     });
     let prev = null;
-    for (let q = 0; q <= u + 1e-6; q += .004) { const pt = [TX(q), TY(trendV(q))]; if (prev) push(prev[0], prev[1], pt[0], pt[1], WHITE, .9 * fadeOut, 3.5); prev = pt; }
-    if (prev && u > 0 && u < 1) { dot(prev[0], prev[1], CYAN, .5, 55); dot(prev[0], prev[1], WHITE, 1, 13); }
+    for (let q = 0; q <= u + 1e-6; q += .004) { const pt = [TX(q), TY(smin(.1 + .95 * q, .8, 22))]; if (prev) push(prev[0], prev[1], pt[0], pt[1], WHITE, .9 * fadeOut, 3.5); prev = pt; }
+    if (prev && u > 0 && u < 1) { dot(prev[0], prev[1], LIME, .5, 55); dot(prev[0], prev[1], WHITE, 1, 13); }
   }
-  // payoff: the ceiling is pushed up and oxygen erupts past it, towards the camera
+  // payoff: the ceiling is pushed up and oxygen erupts past it
   if (t >= 27.0 && t < 29.9) {
     const age = t - 27.05;
-    if (age >= 0) for (let i = 0; i < 1500; i++) {
-      const x0 = lerp(200, 880, h(i, 51)), ang = -Math.PI / 2 + (h(i, 52) - .5) * .9, v = 500 + 1500 * h(i, 53), k = 2.6 + 2 * h(i, 54), life = .7 + .9 * h(i, 55), zd = (h(i, 58) - .62) * 1.3;
+    if (age >= 0) for (let i = 0; i < 1400; i++) {
+      const x0 = lerp(200, 880, h(i, 51)), ang = -Math.PI / 2 + (h(i, 52) - .5) * .9, v = 500 + 1500 * h(i, 53), k = 2.6 + 2 * h(i, 54), life = .7 + .9 * h(i, 55);
       if (age > life) continue;
-      const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x0 + Math.cos(ang) * v * d, 1005 + Math.sin(ang) * v * d - 40 * a, zd * v * d]; };
-      const [x, y, z] = pos(age), [xa, ya, za] = pos(Math.max(0, age - .03));
-      push(xa, ya, x, y, h(i, 56) < .5 ? LIME : h(i, 56) < .78 ? GOLD : WHITE, (1 - age / life) * .75 * (1 - P(t, 29.3, 29.9)), 2 + 3 * h(i, 57), 0, za, z);
+      const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x0 + Math.cos(ang) * v * d, 1005 + Math.sin(ang) * v * d - 40 * a]; };
+      const [x, y] = pos(age), [xa, ya] = pos(Math.max(0, age - .03));
+      push(xa, ya, x, y, h(i, 56) < .6 ? LIME : h(i, 56) < .85 ? WHITE : VIOLET, (1 - age / life) * .75 * (1 - P(t, 29.3, 29.9)), 2 + 3 * h(i, 57));
     }
   }
+  return cam;
 }
+const BR = []; { for (let i = 0; i < 96; i++) { const u = i / 95; BR.push([u, smin(.1 + .95 * u, .8, 22) + ((h(i, 61) + h(i, 62) + h(i, 63)) - 1.5) * .05]); } }
 
-/* ================================================================ kinetic type (Canvas2D → textures, lit in the type pass)
-   Two layers: world type lives on the story plane (warped by the 3D camera in the shader); screen type is overlaid flat. */
-const tcvW = document.createElement('canvas'), tcvS = document.createElement('canvas');
-const txW = tcvW.getContext('2d'), txS = tcvS.getContext('2d');
-let tx = txW, usedW = false, usedS = false;
+/* ================================================================ kinetic type (Canvas2D → texture) */
+const tcv = document.createElement('canvas'), tx = tcv.getContext('2d');
 const layoutCache = new Map();
 function layout(str, font, ls) {
   const key = str + '|' + font + '|' + ls; if (layoutCache.has(key)) return layoutCache.get(key);
@@ -519,10 +442,10 @@ const rise = (t, t0, st = .035, dur = .6, amt = 1) => (i) => { const e = E.outE(
 const exitUp = (t, t0, st = .02) => (i) => { const e = E.inC(P(t, t0 + i * st, t0 + i * st + .35)); return { dy: -e * 220, a: 1 - e }; };
 
 function drawText(t, cam, sh, RS) {
-  for (const g of [txW, txS]) { g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, tcvW.width, tcvW.height); g.textBaseline = 'alphabetic'; }
-  usedW = usedS = false;
-  const screen = () => { tx = txS; usedS = true; tx.setTransform(RS, 0, 0, RS, sh[0] * RS, sh[1] * RS); };
-  const world = () => { tx = txW; usedW = true; tx.setTransform(RS, 0, 0, RS, sh[0] * RS, sh[1] * RS); tx.translate(540, 960); tx.rotate(cam.r); tx.scale(cam.z, cam.z); tx.translate(-cam.x, -cam.y); };
+  tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, tcv.width, tcv.height);
+  const screen = () => tx.setTransform(RS, 0, 0, RS, sh[0] * RS, sh[1] * RS);
+  const world = () => { screen(); tx.translate(540, 960); tx.rotate(cam.r); tx.scale(cam.z, cam.z); tx.translate(-cam.x, -cam.y); };
+  tx.textBaseline = 'alphabetic';
 
   // 1 · hook
   if (t >= 1 && t < 4) {
@@ -536,11 +459,18 @@ function drawText(t, cam, sh, RS) {
       return { s: lerp(1.9, 1, e), a: clamp(slam * 3) * o.a, dy: j + o.dy * 1.2, w: lerp(300, 900, e) - Math.abs(breathe) * 6 };
     } });
   }
-  // 2 · the curve (no chart furniture: the light is the graph)
+  // 2 · the curve
   if (t >= 5 && t < 10.3) {
     world();
-    const gone = 1 - P(t, 9.92, 10.2), calm = 1 - P(t, 8.5, 8.9);   // the captions clear so the freeze is one image
-    const pop = t0 => i => { const e = E.back(P(t, t0 + i * .03, t0 + i * .03 + .4), 2.2); return { dy: (1 - e) * 40, a: clamp(P(t, t0 + i * .03, t0 + i * .03 + .15)) * gone * calm, w: lerp(300, 800, E.outC(P(t, t0 + i * .03, t0 + i * .03 + .5))) }; };
+    const gone = 1 - P(t, 9.92, 10.2);
+    tx.globalAlpha = 1;
+    // axes
+    tx.save(); tx.globalAlpha = .45 * P(t, 4.45, 4.9) * gone; tx.strokeStyle = '#fff'; tx.lineWidth = 2.5;
+    const ax = E.outE(P(t, 4.45, 4.95)), ay = E.outE(P(t, 4.65, 5.2));
+    tx.beginPath(); tx.moveTo(lerp(540, 120, ax), 1380); tx.lineTo(lerp(540, 980, ax), 1380); tx.moveTo(120, 1380); tx.lineTo(120, lerp(1380, 650, ay)); tx.stroke(); tx.restore();
+    type('EFFORT', 980, 1428, { size: 24, weight: 700, ls: 8, fill: '#b286ff', align: 'right', alpha: P(t, 4.9, 5.2) * gone });
+    tx.save(); tx.translate(90, 660); tx.rotate(-Math.PI / 2); type('OXYGEN USED', 0, 0, { size: 24, weight: 700, ls: 8, fill: '#b286ff', align: 'right', alpha: P(t, 4.9, 5.2) * gone }); tx.restore();
+    const pop = t0 => i => { const e = E.back(P(t, t0 + i * .03, t0 + i * .03 + .4), 2.2); return { dy: (1 - e) * 40, a: clamp(P(t, t0 + i * .03, t0 + i * .03 + .15)) * gone, w: lerp(300, 800, E.outC(P(t, t0 + i * .03, t0 + i * .03 + .5))) }; };
     type('Push harder,', 262, 1336, { size: 60, weight: 800, fill: '#fff', letter: pop(5.15) });
     type('use more oxygen…', 560, 1012, { size: 60, weight: 800, fill: '#fff', letter: pop(6.55) });
     const sl = P(t, 8.15, 8.4);
@@ -564,8 +494,8 @@ function drawText(t, cam, sh, RS) {
     labels.forEach(([a, b], i) => {
       const t0 = [11.4, 12.3, 13.2][i];
       const act = k < 0 || k === i ? 1 : .45;
-      type(a, VO.cx[i], 1122, { size: 34, weight: 800, ls: 5, fill: '#b286ff', align: 'center', letter: rise(t, t0, .02, .5, .5), alpha: act * (1 - P(t, 14.75, 15)) });
-      type(b, VO.cx[i], 1164, { size: 30, weight: 400, fill: '#fff', align: 'center', letter: rise(t, t0 + .1, .015, .5, .4), alpha: .85 * act * (1 - P(t, 14.75, 15)) });
+      type(a, VO.cx[i], 1108, { size: 34, weight: 800, ls: 5, fill: '#b286ff', align: 'center', letter: rise(t, t0, .02, .5, .5), alpha: act * (1 - P(t, 14.75, 15)) });
+      type(b, VO.cx[i], 1150, { size: 30, weight: 400, fill: '#fff', align: 'center', letter: rise(t, t0 + .1, .015, .5, .4), alpha: .85 * act * (1 - P(t, 14.75, 15)) });
     });
   }
   // 4 · the heart
@@ -578,22 +508,18 @@ function drawText(t, cam, sh, RS) {
     const gone = 1 - P(t, 20.9, 21.1);
     type('HOW MUCH IT CAN PUMP', 540, 1170, { size: 40, weight: 300, ls: 12, fill: '#fff', align: 'center', alpha: gone, letter: rise(t, 18.3, .02) });
     const sl = P(t, 18.75, 19.0);
-    const slam = i => ({ s: lerp(1.7, 1, E.inC(sl)) * (1 + .03 * l), a: clamp(sl * 3), w: lerp(300, 900, E.inC(sl)) - 180 * d });
-    if (sl > 0) { type('usually sets', 540, 1296, { size: 104, weight: 900, italic: true, fill: '#d4ef70', align: 'center', alpha: gone, letter: slam }); type('the limit.', 540, 1404, { size: 104, weight: 900, italic: true, fill: '#d4ef70', align: 'center', alpha: gone, letter: slam }); }
+    if (sl > 0) type('usually sets the limit.', 540, 1296, { size: 104, weight: 900, italic: true, fill: '#d4ef70', align: 'center', alpha: gone, letter: i => ({ s: lerp(1.7, 1, E.inC(sl)) * (1 + .03 * l), a: clamp(sl * 3), w: lerp(300, 900, E.inC(sl)) - 180 * d }) });
   }
   // 5 · the test
   if (t >= 21.4 && t < 26.5) {
-    const out = 1 - P(t, 26, 26.35);
     screen();
+    const out = 1 - P(t, 26, 26.35);
     type('MEASURED', 100, 430, { size: 56, weight: 300, ls: 20, fill: '#fff', alpha: out, letter: rise(t, 21.55, .03) });
     type('breath by breath.', 100, 552, { size: 112, weight: 900, italic: true, fill: '#d4ef70', alpha: out, letter: i => { const r = rise(t, 21.8, .025)(i); return { ...r, w: lerp(300, 900, E.outC(P(t, 21.8 + i * .025, 22.4 + i * .025))) }; } });
-    // on the plane, in perspective: the only axis note the story needs
-    world();
-    const la = Math.max(P(t, 21.9, 22.4) * (1 - P(t, 23.1, 23.5)), P(t, 25.15, 25.6)) * out;   // shown only while the shot keeps it clear of the Reels UI
-    type('EFFORT RISES EVERY MINUTE', 110, 1392, { size: 26, weight: 700, ls: 7, fill: '#7fe3ff', alpha: la, letter: rise(t, 21.9, .015, .5, .3) });
-    tx.save(); tx.globalAlpha = la * .8; tx.strokeStyle = '#7fe3ff'; tx.lineWidth = 3; tx.lineCap = 'round';
-    const ax = lerp(640, 980, E.outC(P(t, 22.1, 22.9)));
-    tx.beginPath(); tx.moveTo(640, 1383); tx.lineTo(ax, 1383); tx.moveTo(ax - 14, 1373); tx.lineTo(ax, 1383); tx.lineTo(ax - 14, 1393); tx.stroke(); tx.restore();
+    tx.save(); tx.globalAlpha = .4 * P(t, 21.5, 22) * out; tx.strokeStyle = '#fff'; tx.lineWidth = 2.5;
+    tx.beginPath(); tx.moveTo(110, 760); tx.lineTo(110, 1330); tx.lineTo(980, 1330); tx.stroke(); tx.restore();
+    type('TIME · HARDER EVERY MINUTE', 980, 1376, { size: 22, weight: 700, ls: 6, fill: '#b286ff', align: 'right', alpha: P(t, 21.6, 22) * out });
+    tx.save(); tx.translate(80, 760); tx.rotate(-Math.PI / 2); type('OXYGEN USED', 0, 0, { size: 22, weight: 700, ls: 6, fill: '#b286ff', align: 'right', alpha: P(t, 21.6, 22) * out }); tx.restore();
     const lp = P(t, 25.1, 25.4);
     if (lp > 0) { tx.save(); tx.globalAlpha = lp * out; tx.translate(980, 770); const s = lerp(1.4, 1, E.outE(lp)); tx.scale(s, s);
       tx.fillStyle = '#d4ef70'; tx.textAlign = 'right'; tx.font = '900 64px Figtree'; const wm = tx.measureText('max').width; tx.fillText('max', 0, 0);
@@ -620,119 +546,70 @@ if (!gl) { fail('This piece needs WebGL2. Try a current Chrome, Edge, Firefox or
 const FLOAT = !!gl.getExtension('EXT_color_buffer_float');
 const VS_FULL = `#version 300 es
 layout(location=0) in vec2 aPos; out vec2 vUv; void main(){ vUv = aPos*.5+.5; gl_Position = vec4(aPos,0.,1.); }`;
-// shared camera maths: the story plane is z = 0; uCam = (target x, target y, camera distance, zoom)
-const CAM = `
-uniform mat3 uM; uniform vec4 uCam; uniform vec2 uShake; uniform float uRoll;
-const float F = ${F}.;
-void ray(vec2 d, out vec3 ro, out vec3 rd){ mat3 Mt = transpose(uM); rd = Mt*vec3((d-vec2(540.,960.))/F, 1.); ro = vec3(uCam.xy,0.) + Mt*vec3(0.,0.,-uCam.z); }
-vec2 planeHit(vec2 d){ vec3 ro, rd; ray(d, ro, rd); return (ro + rd*(-ro.z/max(rd.z,1e-4))).xy; }
-vec2 affine(vec2 w){ vec2 q=(w-uCam.xy)*uCam.w; float c=cos(uRoll), s=sin(uRoll); return vec2(c*q.x-s*q.y, s*q.x+c*q.y)+vec2(540.,960.)+uShake; }
-vec2 worldTypeUv(vec2 d){ return affine(planeHit(d-uShake))/vec2(1080.,1920.); }`;
 const FS_BG = `#version 300 es
 precision highp float; in vec2 vUv; out vec4 o;
-uniform float uT, uCeilA, uHeartBeat; uniform vec4 uCeil, uHeart; uniform vec3 uBase0, uBase1, uNeb1, uNeb2;
-${CAM}
+uniform float uT, uCeilA, uGridA, uTint, uHeartBeat; uniform vec4 uCam, uCeil, uHeart;
 float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
 float vn(vec2 p){ vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f); return mix(mix(h21(i),h21(i+vec2(1,0)),u.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),u.x), u.y); }
 float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*vn(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
-float dot2(vec2 v){ return dot(v,v); }
-float sdHeart(vec2 p){ p.x = abs(p.x); if (p.y+p.x > 1.) return sqrt(dot2(p-vec2(.25,.75))) - sqrt(2.)/4.; return sqrt(min(dot2(p-vec2(0.,1.)), dot2(p-.5*max(p.x+p.y,0.)))) * sign(p.x-p.y); }
+vec2 toWorld(vec2 d){ vec2 q=d-vec2(540.,960.); float c=cos(-uCam.w), s=sin(-uCam.w); q=vec2(c*q.x-s*q.y, s*q.x+c*q.y); return q/uCam.z+uCam.xy; }
 void main(){
-  vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.) - uShake;
-  vec3 ro, rd; ray(d, ro, rd);
-  float s = -ro.z/max(rd.z,1e-4); vec2 w = (ro+rd*s).xy; float pxw = s/F;
-  // far nebula: follows the camera's rotation, barely its dolly
-  vec2 far = rd.xy/rd.z*F/(1.+(uCam.w-1.)*.15) + uCam.xy*.25;
-  vec3 col = mix(uBase0, uBase1, pow(clamp(1.-vUv.y*1.1+.1,0.,1.),1.6));
+  vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.);
+  vec2 w = toWorld(d);
+  vec2 far = (d-vec2(540.,960.))/(1.+(uCam.z-1.)*.15) + uCam.xy*.25;
+  vec3 col = mix(vec3(.012,.006,.028), vec3(.07,.03,.14), pow(clamp(1.-vUv.y*1.1+.1,0.,1.),1.6));
   float n = fbm(far*.0017 + vec2(0., uT*.035)), n2 = fbm(far*.0045 - vec2(uT*.02, 0.));
-  col += smoothstep(.45,.95,n)*uNeb1*.55 + smoothstep(.6,1.,n2)*uNeb2*.2;
-  // ceiling: a beam of light lying on the story plane
+  col += smoothstep(.45,.95,n)*vec3(.32,.12,.62)*.55 + smoothstep(.62,1.,n2)*vec3(.35,.45,.12)*.12;
+  col = mix(col, col*vec3(1.35,.6,1.2) + vec3(.06,.0,.05)*(.6+.4*uHeartBeat), uTint);
+  // ceiling: a beam of light
   vec2 a = vec2(uCeil.x, uCeil.z), b = vec2(uCeil.y, uCeil.z), pa = w-a, ba = b-a;
   float hh = clamp(dot(pa,ba)/dot(ba,ba),0.,1.), dist = length(pa-ba*hh), th = uCeil.w*.5;
-  float px = 1.2*pxw, core = 1.-smoothstep(th-px, th+px, dist), dd = max(dist-th,0.);
+  float px = 1.2/uCam.z, core = 1.-smoothstep(th-px, th+px, dist), dd = max(dist-th,0.);
   float shimmer = .85+.15*sin(w.x*.045 - uT*9.) + .1*vn(vec2(w.x*.02 - uT*6., 0.));
   vec3 lime = vec3(.83,.94,.44);
-  col += (mix(lime, vec3(1.), .35)*core*1.05*shimmer + lime*(exp(-dd/9.)*.55 + exp(-dd/60.)*.16 + exp(-dd/240.)*.05)) * uCeilA * step(0., s);
-  // heart: a living orb that squeezes into a heart on every beat (billboarded, so it stays round under any camera)
+  col += (mix(lime, vec3(1.), .35)*core*1.05*shimmer + lime*(exp(-dd/9.)*.55 + exp(-dd/60.)*.16 + exp(-dd/240.)*.05)) * uCeilA;
+  // heart: a living orb
   if (uHeart.z > 1.) {
-    vec2 u = (d-uHeart.xy)/uHeart.z;
-    float sd = mix(length(u)-1., sdHeart(vec2(u.x,-u.y)*.6+vec2(0.,.56))/.6, uHeart.w);
-    float q = 1.+sd, nz = sqrt(max(0.,1.-q*q));
-    float veins = fbm(u*2.4 + vec2(uT*.4, -uT*.25)) + .35*fbm(u*6. - uT*.6);
-    vec3 inner = mix(vec3(.32,.02,.08), vec3(1.,.36,.3), smoothstep(.55,1.05,veins)) * (.35+.95*nz);
-    inner += vec3(1.,.78,.55) * pow(1.-nz, 5.) * 1.3;
-    inner += vec3(1.,.85,.8) * pow(nz, 8.) * .35 * (1.+uHeartBeat);
-    float px2 = 1.5/uHeart.z, inside = 1.-smoothstep(-px2, px2, sd), out_ = max(sd, 0.);
+    vec2 hc = uHeart.xy; float r = uHeart.z, q = length(w-hc)/r, nz = sqrt(max(0.,1.-q*q));
+    float veins = fbm((w-hc)/r*2.4 + vec2(uT*.4, -uT*.25)) + .35*fbm((w-hc)/r*6. - uT*.6);
+    vec3 inner = mix(vec3(.28,.03,.42), vec3(1.,.4,.9), smoothstep(.55,1.05,veins)) * (.35+.95*nz);
+    inner += vec3(.85,1.,.5) * pow(1.-nz, 5.) * 1.3;
+    inner += vec3(1.,.8,1.) * pow(nz, 8.) * .35 * (1.+uHeartBeat);
+    float inside = 1.-smoothstep(.985, 1.005, q), out_ = max(q-1., 0.);
     col = mix(col, inner, inside);
-    col += vec3(1.,.28,.36) * (exp(-out_*3.2)*.55 + exp(-out_*.8)*.14) * (1.+uHeartBeat*.9) * (1.-inside);
+    col += vec3(.75,.3,1.) * (exp(-out_*3.2)*.55 + exp(-out_*.8)*.14) * (1.+uHeartBeat*.9) * (1.-inside);
+  }
+  // test: a faint lab grid
+  if (uGridA > 0.) {
+    vec2 g = abs(fract((d-vec2(110.,760.))/57.)-.5)*57.; float line = 1.-smoothstep(0., 1.4, min(g.x,g.y));
+    float inA = step(110.,d.x)*step(d.x,980.)*step(760.,d.y)*step(d.y,1330.);
+    col += vec3(.5,.35,1.)*line*.09*uGridA*inA;
   }
   o = vec4(col,1.);
 }`;
 const VS_P = `#version 300 es
-layout(location=0) in vec2 aCorner; layout(location=1) in vec3 aA; layout(location=2) in vec3 aB; layout(location=3) in vec4 aCol; layout(location=4) in vec2 aSz;
-uniform mat3 uM; uniform vec4 uCam; uniform vec2 uShake, uDof;
-out vec2 vL; out vec4 vCol; out float vShape, vLen, vRad, vBok;
-const float F = ${F}.;
-vec3 proj(vec3 p){ vec3 v = uM*(p-vec3(uCam.xy,0.)); v.z += uCam.z; return v; }
+layout(location=0) in vec2 aCorner; layout(location=1) in vec4 aSeg; layout(location=2) in vec4 aCol; layout(location=3) in vec2 aSz;
+uniform vec4 uCam; uniform vec2 uShake; out vec2 vL; out vec4 vCol; out float vShape, vLen, vRad;
+vec2 scr(vec2 w){ vec2 q=(w-uCam.xy)*uCam.z; float c=cos(uCam.w), s=sin(uCam.w); q=vec2(c*q.x-s*q.y, s*q.x+c*q.y); return q+vec2(540.,960.)+uShake; }
 void main(){
-  vec3 va = proj(aA), vb = proj(aB);
-  vL = vec2(0.); vCol = vec4(0.); vShape = 0.; vLen = 0.; vRad = 1.; vBok = 0.;
-  if (min(va.z, vb.z) < 12.) { gl_Position = vec4(3.,3.,0.,1.); return; }   // behind the lens
-  vec2 a = vec2(540.,960.) + F*va.xy/va.z + uShake, b = vec2(540.,960.) + F*vb.xy/vb.z + uShake;
-  float zc = .5*(va.z+vb.z), r0 = max(aSz.x*F/zc, .7);
-  float coc = aSz.y > .5 ? 0. : uDof.y*abs(zc-uDof.x)/zc;          // circle of confusion
-  float rad = min(sqrt(r0*r0 + coc*coc), 420.);
+  vec2 a = scr(aSeg.xy), b = scr(aSeg.zw); float rad = max(aSz.x*uCam.z, .7);
   vec2 dv = b-a; float len = length(dv); vec2 t = len>.001 ? dv/len : vec2(1.,0.), n = vec2(-t.y,t.x);
   float half_ = len*.5 + rad; vec2 p = (a+b)*.5 + t*aCorner.x*half_ + n*aCorner.y*rad;
   vL = vec2(aCorner.x*half_, aCorner.y*rad); vLen = len*.5; vRad = rad;
-  vCol = vec4(aCol.rgb, aCol.a * pow(r0/rad, .7) * smoothstep(12., 140., zc) * rad/(rad+len*.25)); vShape = aSz.y; vBok = smoothstep(4., 14., coc);
+  vCol = vec4(aCol.rgb, aCol.a * rad/(rad+len*.25)); vShape = aSz.y;
   gl_Position = vec4(p.x/540.-1., 1.-p.y/960., 0., 1.);
 }`;
 const FS_P = `#version 300 es
-precision highp float; in vec2 vL; in vec4 vCol; in float vShape, vLen, vRad, vBok; out vec4 o;
+precision highp float; in vec2 vL; in vec4 vCol; in float vShape, vLen, vRad; out vec4 o;
 void main(){
   float dx = max(abs(vL.x)-vLen, 0.), d = length(vec2(dx, vL.y))/vRad;
-  float disc = (1.-smoothstep(.78,.9,d)) * (.55+.45*smoothstep(.45,.85,d)) * .6;   // bokeh: flat disc with a bright rim
-  float a = vShape < .5 ? mix(exp(-d*d*4.5), disc, vBok) : exp(-pow((d-.82)/.1, 2.));
+  float a = vShape < .5 ? exp(-d*d*4.5) : exp(-pow((d-.82)/.1, 2.));
   a *= vCol.a;
   o = vec4(vCol.rgb*a, a);
 }`;
-// the type's height map: both layers' coverage (world type through the camera warp), blurred afterwards
-const FS_MASK = `#version 300 es
-precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTW, uTS;
-${CAM}
-void main(){ vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.); float a = max(texture(uTW, worldTypeUv(d)).a, texture(uTS, d/vec2(1080.,1920.)).a); o = vec4(vec3(a),1.); }`;
-// type lit by the scene: bevel normals from the height map, the beam, the photon and the heart as lights, cast shadows and edge refraction
-const FS_TYPE = `#version 300 es
-precision highp float; in vec2 vUv; out vec4 o;
-uniform sampler2D uScene, uTW, uTS, uHt; uniform vec2 uHtTexel, uKey; uniform vec4 uBeam, uPh, uHeartL; uniform vec3 uBeamCol, uHeartCol; uniform float uShadow;
-${CAM}
-void light(vec2 d, vec2 p, float hgt, vec3 col, vec3 N, inout vec3 lit, inout vec3 spec){
-  vec3 L = normalize(vec3(p-d, hgt)); lit += col*max(dot(N,L),0.);
-  spec += col*pow(max(dot(N, normalize(L+vec3(0.,0.,1.))),0.), 44.)*1.7;
-}
-void main(){
-  vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.);
-  vec4 tw = texture(uTW, worldTypeUv(d)), ts = texture(uTS, d/vec2(1080.,1920.));
-  float ta = ts.a + tw.a*(1.-ts.a);
-  vec3 tc = (ts.rgb*ts.a + tw.rgb*tw.a*(1.-ts.a)) / max(ta, 1e-4);
-  float hx = texture(uHt, vUv+vec2(uHtTexel.x,0.)).r - texture(uHt, vUv-vec2(uHtTexel.x,0.)).r;
-  float hy = texture(uHt, vUv+vec2(0.,uHtTexel.y)).r - texture(uHt, vUv-vec2(0.,uHtTexel.y)).r;
-  vec3 N = normalize(vec3(-hx*3.4, hy*3.4, 1.));
-  vec3 lit = vec3(0.), spec = vec3(0.);
-  vec2 pa = d-uBeam.xy, ba = uBeam.zw-uBeam.xy; vec2 bp = uBeam.xy + ba*clamp(dot(pa,ba)/max(dot(ba,ba),1.),0.,1.);
-  light(d, bp, 70., uBeamCol*(exp(-length(d-bp)/380.)*1.1 + .12), N, lit, spec);
-  light(d, uPh.xy, 60., vec3(1.,1.,.85)*uPh.z*exp(-length(d-uPh.xy)/320.), N, lit, spec);
-  light(d, uHeartL.xy, 180., uHeartCol*uHeartL.w*exp(-max(length(d-uHeartL.xy)-uHeartL.z,0.)/520.), N, lit, spec);
-  light(d, d+vec2(-300.,-700.), 520., vec3(.3), N, lit, spec);
-  float edge = 1.-N.z;
-  vec3 fill = tc*(.86 + .45*lit) + spec + tc*edge*1.2*dot(lit, vec3(.33));
-  vec3 sc = texture(uScene, vUv + vec2(N.x*7./1080., -N.y*7./1920.)).rgb;             // glassy refraction at the edges
-  vec2 dir = normalize(d-uKey+1e-3)*16.;
-  float shd = texture(uHt, vUv - vec2(dir.x/1080., -dir.y/1920.)).r;                  // shadow cast away from the key light
-  sc *= 1. - uShadow*shd*(1.-ta);
-  o = vec4(mix(sc, fill, ta), 1.);
-}`;
+const FS_TEX = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uGain;
+void main(){ vec4 c = texture(uTex, vec2(vUv.x, 1.-vUv.y)); o = vec4(c.rgb*uGain, c.a); }`;
 const FS_BRIGHT = `#version 300 es
 precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uThr;
 void main(){ vec3 c = texture(uTex, vUv).rgb; float l = max(c.r, max(c.g, c.b)); float k = max(l-uThr, 0.); o = vec4(c * (k/(l+1e-4)), 1.); }`;
@@ -745,8 +622,7 @@ const FS_COPY = `#version 300 es
 precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uGain; void main(){ o = vec4(texture(uTex, vUv).rgb*uGain, 1.); }`;
 const FS_COMP = `#version 300 es
 precision highp float; in vec2 vUv; out vec4 o;
-uniform sampler2D uScene, uBloom, uBloom2; uniform vec4 uShock0, uShock1; uniform vec3 uShT, uHiT;
-uniform float uCA, uFlash, uFade, uSat, uBloomAmt, uT, uW, uGrain, uStreak;
+uniform sampler2D uScene, uBloom; uniform vec4 uShock0, uShock1; uniform float uCA, uFlash, uFade, uSat, uBloomAmt, uT;
 vec3 shoulder(vec3 x){ return mix(x, 1.-.2*exp(-(x-.8)/.2), step(.8, x)); }
 void main(){
   vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.), off = vec2(0.);
@@ -755,15 +631,11 @@ void main(){
   vec2 cc = uv-.5; float ca = uCA*(.35+dot(cc,cc)*3.5);
   vec3 c = vec3(texture(uScene, uv+cc*ca).r, texture(uScene, uv).g, texture(uScene, uv-cc*ca).b);
   c += texture(uBloom, uv).rgb*uBloomAmt + uFlash;
-  vec3 st = vec3(0.);   // anamorphic streak on the brightest light
-  for (int k=1;k<=6;k++){ float of = float(k)*.02; st += (texture(uBloom2, uv+vec2(of,0.)).rgb + texture(uBloom2, uv-vec2(of,0.)).rgb) * exp(-float(k)*.5); }
-  c += st*uStreak*vec3(.75,.9,1.15);
   c = shoulder(c);
   float l = dot(c, vec3(.299,.587,.114)); c = mix(vec3(l), c, uSat);
-  c = c*uHiT + uShT*(1.-smoothstep(0.,.45,l));                                          // colour script grade
   vec2 q = vUv-.5; c *= 1.-dot(q*vec2(1.05,.8), q*vec2(1.05,.8))*.85;
-  float g = fract(sin(dot(d+fract(uT*7.13)*97., vec2(12.9898,78.233)))*43758.5453); c += (g-.5)*uGrain;
-  o = vec4(clamp(c*(1.-uFade), 0., 1.)*uW, 1.);
+  float g = fract(sin(dot(d+fract(uT*7.13)*97., vec2(12.9898,78.233)))*43758.5453); c += (g-.5)*.05;
+  o = vec4(clamp(c*(1.-uFade), 0., 1.), 1.);
 }`;
 function prog(vs, fs) {
   const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
@@ -774,7 +646,7 @@ function prog(vs, fs) {
 }
 let PR;
 try {
-  PR = { bg: prog(VS_FULL, FS_BG), part: prog(VS_P, FS_P), mask: prog(VS_FULL, FS_MASK), type: prog(VS_FULL, FS_TYPE), bright: prog(VS_FULL, FS_BRIGHT), blur: prog(VS_FULL, FS_BLUR), copy: prog(VS_FULL, FS_COPY), comp: prog(VS_FULL, FS_COMP) };
+  PR = { bg: prog(VS_FULL, FS_BG), part: prog(VS_P, FS_P), tex: prog(VS_FULL, FS_TEX), bright: prog(VS_FULL, FS_BRIGHT), blur: prog(VS_FULL, FS_BLUR), copy: prog(VS_FULL, FS_COPY), comp: prog(VS_FULL, FS_COMP) };
 } catch (e) { fail('Shader error: ' + e.message); console.error(e); return; }
 const fullVAO = gl.createVertexArray(); gl.bindVertexArray(fullVAO);
 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -783,114 +655,99 @@ const partVAO = gl.createVertexArray(); gl.bindVertexArray(partVAO);
 gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
 gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 const instBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, instBuf); gl.bufferData(gl.ARRAY_BUFFER, pbuf.byteLength, gl.DYNAMIC_DRAW);
-[[1, 3, 0], [2, 3, 12], [3, 4, 24], [4, 2, 40]].forEach(([loc, n, off]) => { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(loc, 1); });
+[[1, 4, 0], [2, 4, 16], [3, 2, 32]].forEach(([loc, n, off]) => { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(loc, 1); });
 gl.bindVertexArray(null);
-const mkTex = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v)); return t; };
-const texW = mkTex(), texS = mkTex();
-let hadW = true, hadS = true;
-function upload(tex, canvas) { gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas); }
+const textTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, textTex);
+[[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
 function target(w, hgt) {
-  const t = mkTex();
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
   gl.texImage2D(gl.TEXTURE_2D, 0, FLOAT ? gl.RGBA16F : gl.RGBA8, w, hgt, 0, gl.RGBA, FLOAT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+  [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
   const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
   return { f, t, w, h: hgt };
 }
-let RS = 0, RW = 0, RH = 0, sceneA, sceneB, acc = null, bloom = [];
+let RS = 0, RW = 0, RH = 0, scene, bloom = [];
 function resize(scale) {
-  scale = Math.max(.3, Math.min(1, scale)); if (Math.abs(scale - RS) < .01 && sceneA) return;
-  RS = scale; RW = Math.round(W * RS); RH = Math.round(H * RS); cv.width = RW; cv.height = RH;
-  tcvW.width = tcvS.width = RW; tcvW.height = tcvS.height = RH;
-  sceneA = target(RW, RH); sceneB = target(RW, RH); acc = null; bloom = [];
+  scale = Math.max(.3, Math.min(1, scale)); if (Math.abs(scale - RS) < .01 && scene) return;
+  RS = scale; RW = Math.round(W * RS); RH = Math.round(H * RS); cv.width = RW; cv.height = RH; tcv.width = RW; tcv.height = RH;
+  scene = target(RW, RH); bloom = [];
   for (let i = 1; i <= 4; i++) { const w = Math.max(8, Math.round(RW / (2 ** i))), hh = Math.max(8, Math.round(RH / (2 ** i))); bloom.push({ a: target(w, hh), b: target(w, hh) }); }
-  layoutCache.clear(); upload(texW, tcvW); upload(texS, tcvS); hadW = hadS = false;
+  layoutCache.clear();
 }
 const full = () => { gl.bindVertexArray(fullVAO); gl.drawArrays(gl.TRIANGLES, 0, 3); };
-function pass(pr, fbo, texs = {}, uni = {}) {
+function pass(pr, fbo, tex, uni = {}) {
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo ? fbo.f : null); gl.viewport(0, 0, fbo ? fbo.w : RW, fbo ? fbo.h : RH);
-  gl.useProgram(pr.p);
-  let unit = 0; for (const k in texs) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, texs[k]); if (pr.u[k] != null) gl.uniform1i(pr.u[k], unit); unit++; }
-  for (const k in uni) {
-    const v = uni[k], l = pr.u[k]; if (l == null) continue;
-    if (typeof v === 'number') gl.uniform1f(l, v); else if (v.length === 2) gl.uniform2fv(l, v); else if (v.length === 3) gl.uniform3fv(l, v); else if (v.length === 4) gl.uniform4fv(l, v); else if (v.length === 9) gl.uniformMatrix3fv(l, false, v);
-  }
-  full(); gl.activeTexture(gl.TEXTURE0);
+  gl.useProgram(pr.p); if (tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(pr.u.uTex, 0); }
+  for (const k in uni) { const v = uni[k], l = pr.u[k]; if (l == null) continue; if (typeof v === 'number') gl.uniform1f(l, v); else if (v.length === 2) gl.uniform2fv(l, v); else gl.uniform4fv(l, v); }
+  full();
 }
 
 /* ================================================================ one frame */
-function draw(t, out = null, wgt = 1, grain = 1) {
+function toScreen(wx, wy, cam) { let x = (wx - cam.x) * cam.z, y = (wy - cam.y) * cam.z; const c = Math.cos(cam.r), s = Math.sin(cam.r); return [c * x - s * y + 540, s * x + c * y + 960]; }
+function draw(t) {
   t = clamp(t, 0, DUR - 1e-4);
-  const cam = camAt(t), pal = paletteAt(t), sh = shakeAt(t), c = ceilAt(t), hs = heartAt(t);
-  buildParticles(t, cam, pal);
+  const cam = buildParticles(t), sh = shakeAt(t), c = ceilAt(t), hs = heartAt(t);
   // post parameters from the impacts
   let ca = .0016, flash = 0; const shocks = [];
   for (const [ti, x, y, a] of IMPACTS) {
     const age = t - ti; if (age < 0) continue;
     ca += a * .009 * Math.exp(-age * 7); flash += (FLASH[ti] || a * .12) * Math.exp(-age * (FLASH[ti] ? 15 : 16));
-    if (age < .9) { const [sx, sy] = toScreen(camAt(ti), x, y); shocks.push([sx, sy, age * 1500, a * 16 * Math.exp(-age * 3.2)]); }
+    if (age < .9) { const [sx, sy] = toScreen(x, y, camAt(ti)); shocks.push([sx, sy, age * 1500, a * 16 * Math.exp(-age * 3.2)]); }
   }
   const freeze = P(t, 8.42, 8.6) * (1 - P(t, 9.97, 10.0));
   ca += freeze * .004;
-  const hS = toScreen(cam, HC[0], HC[1]);
-  for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age >= 0 && age < .7) shocks.push([hS[0], hS[1], age * 1200, 5 * Math.exp(-age * 4)]); }
+  for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age >= 0 && age < .7) shocks.push([540, 760, age * 1200, 5 * Math.exp(-age * 4)]); }
   while (shocks.length < 2) shocks.push([0, 0, 0, 0]);
   const S2 = shocks.slice(-2);
-  const camU = { uM: cam.Mgl, uCam: [cam.x, cam.y, cam.D, cam.z], uShake: sh, uRoll: cam.r };
 
-  // scene: background, then particles
+  // scene
   gl.disable(gl.BLEND);
-  pass(PR.bg, sceneA, {}, { ...camU, uT: t, uCeil: [c.x0, c.x1, c.y, c.th], uCeilA: c.a, uHeart: [hS[0], hS[1], hs.r * F / hS[2], hs.k], uHeartBeat: hs.beat,
-    uBase0: pal.b0, uBase1: pal.b1, uNeb1: pal.n1, uNeb2: pal.n2 });
+  pass(PR.bg, scene, null, {
+    uT: t, uCam: [cam.x, cam.y, cam.z, cam.r], uCeil: [c.x0, c.x1, c.y, c.th], uCeilA: c.a,
+    uHeart: [HC[0], HC[1], hs.r, 0], uHeartBeat: hs.beat, uTint: P(t, 15.3, 15.8) * (1 - P(t, 21.1, 21.3)), uGridA: P(t, 21.5, 22) * (1 - P(t, 26, 26.4)),
+  });
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
-  gl.useProgram(PR.part.p); gl.uniformMatrix3fv(PR.part.u.uM, false, cam.Mgl); gl.uniform4fv(PR.part.u.uCam, camU.uCam); gl.uniform2fv(PR.part.u.uShake, sh); gl.uniform2fv(PR.part.u.uDof, [cam.D, cam.aper]);
+  gl.useProgram(PR.part.p); gl.uniform4fv(PR.part.u.uCam, [cam.x, cam.y, cam.z, cam.r]); gl.uniform2fv(PR.part.u.uShake, sh);
   gl.bindVertexArray(partVAO); gl.bindBuffer(gl.ARRAY_BUFFER, instBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, pbuf, 0, np * STRIDE);
   gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, np);
-  gl.disable(gl.BLEND);
-  // type: draw both layers, build a bevel height map, then light the letters with the scene's own lights
+  // type
   drawText(t, cam, sh, RS);
-  if (usedW || hadW) upload(texW, tcvW); if (usedS || hadS) upload(texS, tcvS); hadW = usedW; hadS = usedS;
-  const HT = bloom[0];
-  pass(PR.mask, HT.a, { uTW: texW, uTS: texS }, camU);
-  for (let k = 0; k < 2; k++) { pass(PR.blur, HT.b, { uTex: HT.a.t }, { uDir: [1 / HT.a.w, 0] }); pass(PR.blur, HT.a, { uTex: HT.b.t }, { uDir: [0, 1 / HT.a.h] }); }
-  const b0 = toScreen(cam, c.x0, c.y), b1 = toScreen(cam, c.x1, c.y), ph = photonAt(t), pS = toScreen(cam, ph.x, ph.y);
-  const add = v => [v[0] + sh[0], v[1] + sh[1]];
-  const key = c.a > .3 ? add([(b0[0] + b1[0]) / 2, (b0[1] + b1[1]) / 2]) : hs.r > 1 ? add(hS) : [540, -600];
-  pass(PR.type, sceneB, { uScene: sceneA.t, uTW: texW, uTS: texS, uHt: HT.a.t }, { ...camU, uHtTexel: [1 / HT.a.w, 1 / HT.a.h],
-    uBeam: [...add(b0), ...add(b1)], uBeamCol: c.a > 0 ? LIME.map(v => v * 1.4 * c.a) : [0, 0, 0], uPh: [...add(pS), ph.a * 1.3, 0],
-    uHeartL: [...add(hS), hs.r * F / hS[2], hs.r > 1 ? .9 * (1 + hs.beat) : 0], uHeartCol: [1, .45, .42], uKey: key, uShadow: .55 });
+  gl.bindTexture(gl.TEXTURE_2D, textTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tcv);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  pass(PR.tex, scene, textTex, { uGain: 1.0 });
+  gl.disable(gl.BLEND);
   // bloom
-  pass(PR.bright, bloom[0].a, { uTex: sceneB.t }, { uThr: .82 });
+  pass(PR.bright, bloom[0].a, scene.t, { uThr: .82 });
   for (let i = 0; i < bloom.length; i++) {
-    if (i > 0) pass(PR.copy, bloom[i].a, { uTex: bloom[i - 1].a.t }, { uGain: 1 });
+    if (i > 0) pass(PR.copy, bloom[i].a, bloom[i - 1].a.t, { uGain: 1 });
     const L = bloom[i];
-    pass(PR.blur, L.b, { uTex: L.a.t }, { uDir: [1 / L.a.w, 0] });
-    pass(PR.blur, L.a, { uTex: L.b.t }, { uDir: [0, 1 / L.a.h] });
+    pass(PR.blur, L.b, L.a.t, { uDir: [1 / L.a.w, 0] });
+    pass(PR.blur, L.a, L.b.t, { uDir: [0, 1 / L.a.h] });
   }
   gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
-  for (let i = bloom.length - 1; i > 0; i--) pass(PR.copy, bloom[i - 1].a, { uTex: bloom[i].a.t }, { uGain: .9 });
-  // composite (accumulated additively when rendering motion blur)
-  if (!out) gl.disable(gl.BLEND);
-  pass(PR.comp, out, { uScene: sceneB.t, uBloom: bloom[0].a.t, uBloom2: bloom[2].a.t }, {
-    uShock0: S2[0], uShock1: S2[1], uCA: ca, uFlash: flash, uBloomAmt: .6, uStreak: .05, uSat: 1 - .8 * freeze,
-    uFade: P(t, 29.3, 29.95), uT: t, uShT: pal.sh, uHiT: pal.hi, uW: wgt, uGrain: .05 * grain });
+  for (let i = bloom.length - 1; i > 0; i--) pass(PR.copy, bloom[i - 1].a, bloom[i].a.t, { uGain: .9 });
   gl.disable(gl.BLEND);
-}
-// export: average K sub-frames across a 180° shutter for true motion blur
-function renderBlur(t, K = 8, shutter = .5) {
-  if (!acc || acc.w !== RW) acc = target(RW, RH);
-  gl.bindFramebuffer(gl.FRAMEBUFFER, acc.f); gl.viewport(0, 0, RW, RH); gl.clearColor(0, 0, 0, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-  for (let k = 0; k < K; k++) draw(t + ((k + .5) / K - .5) * shutter / FPS, acc, 1 / K, Math.sqrt(K));
-  pass(PR.copy, null, { uTex: acc.t }, { uGain: 1 });
+  // composite
+  gl.useProgram(PR.comp.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.t); gl.uniform1i(PR.comp.u.uScene, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, bloom[0].a.t); gl.uniform1i(PR.comp.u.uBloom, 1);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, RW, RH);
+  gl.uniform4fv(PR.comp.u.uShock0, S2[0]); gl.uniform4fv(PR.comp.u.uShock1, S2[1]);
+  gl.uniform1f(PR.comp.u.uCA, ca); gl.uniform1f(PR.comp.u.uFlash, flash); gl.uniform1f(PR.comp.u.uBloomAmt, .6);
+  gl.uniform1f(PR.comp.u.uSat, 1 - .8 * freeze); gl.uniform1f(PR.comp.u.uFade, P(t, 29.3, 29.95) + (1 - P(t, 0, .25)) * .9); gl.uniform1f(PR.comp.u.uT, t);
+  full();
   ui(t);
 }
 
 /* ================================================================ workspace + playback */
 const BEATS = [
-  [0, 'Hook', 'A photon of oxygen is already in flight; it hits a beam of light. “Your body has a ceiling.”'],
-  [4, 'The curve', 'The camera rides a river of oxygen that climbs with effort… until you can’t. Time stops and the camera orbits the frozen river.'],
-  [10, 'The name', 'The river swoops through depth and condenses into V̇O₂max: volume per minute · of oxygen · at maximum effort.'],
-  [15.3, 'The heart', 'Through the O into a warm, living heart that squeezes and pumps light on every beat. How much it can pump usually sets the limit.'],
-  [21, 'The test', 'The heart lets go; its light becomes the lab’s lattice. The camera tracks each breath across the plane; the beam slams onto the plateau.'],
-  [26, 'The payoff', 'Find your ceiling. The photon pushes it up and oxygen erupts past it, towards you. Then raise it.'],
+  [0, 'Hook', 'A photon of oxygen shoots up and hits a beam of light. “Your body has a ceiling.”'],
+  [4, 'The curve', 'A river of oxygen climbs with effort… until you can’t. Time stops.'],
+  [10, 'The name', 'The river condenses into V̇O₂max: volume per minute · of oxygen · at maximum effort.'],
+  [15.3, 'The heart', 'Through the O into a living heart that pumps light out on every beat. How much it can pump usually sets the limit.'],
+  [21.3, 'The test', 'Measured breath by breath; the beam slams onto the plateau.'],
+  [26, 'The payoff', 'Find your ceiling. The photon pushes it up and oxygen erupts past it. Then raise it.'],
 ];
 const shotsEl = document.getElementById('shots');
 const fmt = s => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(2).padStart(5, '0')}`; };
@@ -908,37 +765,30 @@ function ui(t) {
   let s = 0; BEATS.forEach(([st], i) => { if (t >= st) s = i; });
   if (s !== lastShot) { [...shotsEl.children].forEach((li, i) => li.classList.toggle('on', i === s)); lastShot = s; }
 }
-const audio = document.getElementById('track'), playBtn = document.getElementById('play'), poster = document.getElementById('poster'), hqEl = document.getElementById('hq');
+const audio = document.getElementById('track'), playBtn = document.getElementById('play'), poster = document.getElementById('poster');
 let playing = false, soundOn = true, speed = 1, clock0 = 0, time0 = 0;
-const liveScale = () => hqEl.checked ? 1 : Math.min(1, (stageEl.clientHeight * (window.devicePixelRatio || 1)) / H);
-// adaptive quality: if the device cannot hold the frame rate, render fewer pixels (and claw them back when it can)
-let ft = 16, lastMs = 0, fcount = 0;
-function adapt() {
-  const n = performance.now(); if (lastMs) ft = ft * .9 + Math.min(100, n - lastMs) * .1; lastMs = n;
-  if (hqEl.checked || ++fcount % 45) return;
-  if (ft > 26 && RS > .42) resize(RS * .85); else if (ft < 18.5 && RS < liveScale() - .02) resize(Math.min(liveScale(), RS / .9));
-}
+const liveScale = () => document.getElementById('hq').checked ? 1 : Math.min(1, (stageEl.clientHeight * (window.devicePixelRatio || 1)) / H);
 function now() { if (soundOn && !audio.paused && audio.readyState >= 2) return audio.currentTime; return time0 + (performance.now() - clock0) / 1000 * speed; }
 function startAt(t) { time0 = t; clock0 = performance.now(); if (soundOn) { try { audio.currentTime = t; audio.playbackRate = speed; audio.play().catch(() => {}); } catch (e) {} } }
 function frame() {
   if (!playing) return;
   let t = now();
-  if (t >= DUR) { if (document.getElementById('loop').checked) { startAt(0); t = 0; } else { draw(DUR); ui(DUR); setPlaying(false); return; } }
-  adapt(); draw(t); ui(t); requestAnimationFrame(frame);
+  if (t >= DUR) { if (document.getElementById('loop').checked) { startAt(0); t = 0; } else { draw(DUR); setPlaying(false); return; } }
+  draw(t); requestAnimationFrame(frame);
 }
 function setPlaying(p) {
   playing = p; poster.hidden = true;
   playBtn.innerHTML = p ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-label', p ? 'Pause' : 'Play');
-  if (p) { resize(liveScale()); lastMs = 0; let t = curT; if (t >= DUR - .02) t = 0; startAt(t); requestAnimationFrame(frame); } else audio.pause();
+  if (p) { resize(liveScale()); let t = curT; if (t >= DUR - .02) t = 0; startAt(t); requestAnimationFrame(frame); } else audio.pause();
 }
-function seek(t) { if (playing) setPlaying(false); resize(liveScale()); draw(t); ui(t); poster.hidden = true; try { audio.currentTime = clamp(t, 0, DUR); } catch (e) {} }
+function seek(t) { if (playing) setPlaying(false); resize(liveScale()); draw(t); poster.hidden = true; try { audio.currentTime = clamp(t, 0, DUR); } catch (e) {} }
 playBtn.addEventListener('click', () => setPlaying(!playing));
 poster.addEventListener('click', () => { curT = 0; setPlaying(true); });
 scrub.addEventListener('input', () => seek(parseFloat(scrub.value)));
 document.getElementById('back').addEventListener('click', () => seek(Math.round(curT * FPS - 1) / FPS));
 document.getElementById('fwd').addEventListener('click', () => seek(Math.round(curT * FPS + 1) / FPS));
 document.getElementById('snd').addEventListener('change', e => { soundOn = e.target.checked; if (playing) { if (soundOn) startAt(curT); else { audio.pause(); time0 = curT; clock0 = performance.now(); } } });
-hqEl.addEventListener('change', () => { resize(liveScale()); if (!playing) draw(curT); });
+document.getElementById('hq').addEventListener('change', () => { resize(liveScale()); if (!playing) draw(curT); });
 document.getElementById('safeT').addEventListener('change', e => { document.getElementById('safe').hidden = !e.target.checked; });
 document.getElementById('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); audio.playbackRate = speed; if (playing) startAt(curT); });
 document.addEventListener('keydown', e => {
@@ -952,9 +802,8 @@ window.addEventListener('resize', () => { if (!playing) { resize(liveScale()); d
 const RENDER = location.hash === '#render';
 if (RENDER) document.body.classList.add('render');
 resize(RENDER ? 1 : liveScale());
-window.reel = { duration: DUR, fps: FPS, seek(t) { draw(t); ui(t); }, renderBlur, ready: Promise.resolve(true), setScale(s) { resize(s); },
-  debug: { camAt, toScreen, ceilAt, photonAt } };
-draw(11.3); ui(11.3);      // poster frame: the name, formed from light
+window.reel = { duration: DUR, fps: FPS, seek(t) { draw(t); }, ready: Promise.resolve(true), setScale(s) { resize(s); } };
+draw(12.1);      // poster frame: the name, formed from light
 poster.hidden = RENDER;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { speed = .5; document.getElementById('speed').value = '0.5'; }
 })();

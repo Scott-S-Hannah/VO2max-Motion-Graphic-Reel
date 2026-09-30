@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Soundtrack v2 for the 30 s VO2max reel (motion/index.html, the WebGL "oxygen as light" cut).
+"""Soundtrack v3 for the 30 s VO2max reel (motion/index.html v5, the WebGL "oxygen as light" cut).
 
 Scored to the picture: 120 bpm grid, A minor lifting to C major at the payoff, with sound design on every
 visual event (photon charge and launch, beam hum, impacts, time-stop, particle swarm, heartbeat, implosion,
-sonified breaths). Fully synthesised: no samples, free to use.
+sonified breaths). Sounds are panned to where they happen on screen, and the master is
+loudness-normalised to -14 LUFS with a true-peak limiter at -1 dBTP. Fully synthesised: no samples, free to use.
 
     python3 motion/tools/soundtrack.py   -> motion/out/track.wav, motion/assets/track.mp3, motion/out/spectrogram.png
 """
@@ -12,7 +13,7 @@ import os
 import subprocess
 import wave
 import numpy as np
-from scipy.signal import butter, sosfilt, fftconvolve
+from scipy.signal import butter, sosfilt, fftconvolve, lfilter, resample_poly
 
 SR = 44100
 DUR = 30.0
@@ -23,9 +24,9 @@ ROOT = os.path.dirname(HERE)
 
 # ---- picture cues (seconds): keep in sync with motion/index.html
 CUE = dict(
-    charge=0.05, launch=0.33, beamIn=0.45, impact=0.95, lettersIn=1.12, slam=2.0, textOut=3.45,
+    launch=0.0, beamIn=0.0, impact=0.95, lettersIn=1.12, slam=2.0, textOut=3.45,
     fall=4.0, land=4.45, river=4.95, scrape=7.9, stop=8.4, nameIn=9.25, drop=10.0, dot=10.85,
-    decode=(11.4, 12.3, 13.2), dive=14.75, flash=15.3, heart0=16.0, pump=20.85, implode=(20.95, 21.25),
+    decode=(11.4, 12.3, 13.2), dive=14.75, flash=15.3, heart0=16.0, pump=20.85, implode=(20.95, 21.25), unfold=(21.25, 21.95), orbit=(8.45, 9.95), whip=(24.72, 25.0),
     breaths=(22.3, 24.7), testSlam=25.0, payoff=26.0, relaunch=26.72, lift=27.0, logo=28.0, fade=(29.3, 30.0),
 )
 BR = []   # breath data, identical formula to the picture
@@ -69,6 +70,13 @@ def add(bus, sig, t, g=1.0, pan=0.0):
         return
     j = min(N, i + len(sig))
     bus[i:j] += sig[: j - i] * g
+
+
+def add_moving(bus, sig, t, g, pan_at):
+    """Add a mono sound whose pan follows pan_at(seconds since t): the sound tracks its source on screen."""
+    tl = np.arange(len(sig)) / SR
+    th = (np.clip(np.vectorize(pan_at)(tl), -1, 1) + 1) * math.pi / 4
+    add(bus, np.stack([sig * np.cos(th), sig * np.sin(th)], 1) * math.sqrt(2), t, g)
 
 
 def env(n, a=.005, r=None, d=None, curve=1.0):
@@ -394,10 +402,9 @@ add(fx, glass, 8.45, .09); add(verb, glass, 8.45, .1)
 
 # ---------------------------------------------------------------- sound design on picture cues
 # photon charge + launch + beam
-add(fx, osc(expsweep(180, 520, .3)) * np.linspace(0, 1, int(.3 * SR)) ** 2 * .6, CUE['charge'], .12)
-add(fx, laser_zip(.62, 220, 3200), CUE['launch'], .13); add(verb, laser_zip(.62, 220, 3200), CUE['launch'], .06)
-add(fx, whoosh(.6, True), CUE['launch'], .18)
-add(fx, beam_hum(.55) * np.linspace(.4, 1, int(.55 * SR)), CUE['beamIn'], .14)
+add(fx, laser_zip(.95, 180, 3400), CUE['launch'], .14); add(verb, laser_zip(.95, 180, 3400), CUE['launch'], .06)
+add(fx, whoosh(.95, True), CUE['launch'], .18)
+add(fx, beam_hum(.95) * np.linspace(.5, 1, int(.95 * SR)), CUE['beamIn'], .13)
 add(fx, reverse_swell(impact(), .6), CUE['impact'] - .6, .16)
 for bus, g in ((fx, .62), (verb, .3)):
     add(bus, impact(sub=62, ring=220), CUE['impact'], g)
@@ -411,14 +418,19 @@ add(fx, whoosh(.45, True), CUE['textOut'], .12)
 # fall, land, river
 add(fx, osc(expsweep(1400, 160, .45, .7)) * np.exp(-tt(.45) * 2) * .5, CUE['fall'], .12)
 add(fx, kick_s(1, 12), CUE['land'], .45)
+add_moving(fx, whoosh(.5, False, 300, 4000), CUE['land'] + .05, .1, lambda x: -.8 * min(1, x / .45))
 rise_t = tt(3.0)
+river_pan = lambda x: -.75 + 1.5 * min(1, .8 * (x / 2.95) ** 2 if x < 2.95 else .8 + .2 * min(1, (x - 2.95) / .9))
 add(fx, glitter(3.0, lambda x: 40 + 500 * (x / 3) ** 2, 1800, 7000), CUE['river'], .06)
-add(fx, noise_sweep(3.0, 300, 3000, curve=2) * (rise_t / 3) ** 2, CUE['river'], .05)
+add_moving(fx, noise_sweep(3.0, 300, 3000, curve=2) * (rise_t / 3) ** 2, CUE['river'], .06, river_pan)
 add(fx, filt(rng.normal(0, 1, int(.55 * SR)), 'band', [2500, 9000]) * np.sin(np.pi * np.linspace(0, 1, int(.55 * SR))) * (.5 + .5 * np.sin(2 * np.pi * 23 * tt(.55))), CUE['scrape'], .12)
 add(fx, riser(1.4), CUE['stop'] - 1.4, .14)
 for bus, g in ((fx, .55), (verb, .35)):
     add(bus, impact(.8, sub=48, ring=130, d=1.1, low=.4), CUE['stop'], g * .8)
 add(fx, fm_blip(88, .2), CUE['nameIn'], .08)
+o0, o1 = CUE['orbit']
+air = filt(rng.normal(0, 1, int((o1 - o0) * SR)), 'band', [500, 3500]) * np.sin(np.pi * np.linspace(0, 1, int((o1 - o0) * SR))) ** 2
+add_moving(fx, air, o0, .035, lambda x: -.7 + 1.4 * x / (o1 - o0))
 # the drop: the river explodes and re-forms as the word
 add(fx, reverse_swell(impact(), .9), CUE['drop'] - .9, .22)
 for bus, g in ((fx, .7), (verb, .35)):
@@ -441,7 +453,12 @@ for k in range(10):
 add(fx, reverse_swell(impact(), .32), CUE['implode'][0], .35)
 add(fx, osc(expsweep(90, 900, .3, 2)) * np.linspace(0, 1, int(.3 * SR)) ** 2, CUE['implode'][0], .09)
 add(fx, chime(96, 1.6), CUE['implode'][1], .08); add(verb, chime(96, 1.6), CUE['implode'][1], .12)
-add(fx, impact(.6, sub=40, ring=260, d=1.5), CUE['implode'][1], .3)
+add(fx, impact(.6, sub=40, ring=260, d=1.5), CUE['implode'][1], .16)
+u0, u1 = CUE['unfold']
+add(fx, glitter(1.2, lambda x: 1400 * math.exp(-x * 3) + 20, 1500, 9000), u0 + .02, .09)
+add_moving(fx, whoosh(.75, True, 400, 9000), u0, .12, lambda x: .7 * min(1, x / .7))
+for m in (81, 88):
+    add(fx, chime(m, 1.4), u1, .035); add(verb, chime(m, 1.4), u1, .05)
 # breath by breath: every breath is a note whose pitch follows its oxygen value
 b0, b1 = CUE['breaths']
 for i, (u, v) in enumerate(BR):
@@ -449,8 +466,10 @@ for i, (u, v) in enumerate(BR):
     add(fx, pluck(m, .22, bright=1.1, dec=.07), b0 + (b1 - b0) * u, .1, pan=(u - .5) * .8)
     add(verb, pluck(m, .22, bright=1.1, dec=.07), b0 + (b1 - b0) * u, .05)
 add(fx, reverse_swell(snare(), .3), CUE['testSlam'] - .3, .14)
+w0, w1 = CUE['whip']
+add_moving(fx, whoosh(w1 - w0 + .05, False, 300, 8000), w0, .2, lambda x: .8 - .8 * x / (w1 - w0))
 for bus, g in ((fx, .6), (verb, .3)):
-    add(bus, impact(sub=56, ring=240), CUE['testSlam'], g)
+    add(bus, impact(sub=56, ring=240), CUE['testSlam'], g, pan=.4 if bus is fx else 0)
 add(fx, crackle(.7), CUE['testSlam'], .16)
 # payoff: relaunch, the lift, the eruption, the sign-off
 add(fx, whoosh(.5, False), CUE['payoff'], .15)
@@ -478,7 +497,58 @@ mix *= gain[:, None]
 AUTO = [(0, 0), (9.9, 0), (10.0, 1.5), (14.7, 1.5), (15.3, -.5), (21.2, -.5), (21.3, 0), (25.9, 0), (26.9, 2.5), (30, 2.5)]
 mix *= (10 ** (np.interp(tl, *zip(*AUTO)) / 20))[:, None]
 mix = np.tanh(mix * 1.4) / np.tanh(1.4)
-mix *= .89 / np.max(np.abs(mix))
+
+
+def lufs(x):
+    """Integrated loudness (ITU-R BS.1770-4): K-weighting, 400 ms blocks, absolute and relative gates."""
+    def biquad(kind, fc, q, g=0.0):
+        w0, A = 2 * math.pi * fc / SR, 10 ** (g / 40)
+        al, c = math.sin(w0) / (2 * q), math.cos(w0)
+        if kind == 'shelf':
+            b = [A * ((A + 1) + (A - 1) * c + 2 * math.sqrt(A) * al), -2 * A * ((A - 1) + (A + 1) * c), A * ((A + 1) + (A - 1) * c - 2 * math.sqrt(A) * al)]
+            a = [(A + 1) - (A - 1) * c + 2 * math.sqrt(A) * al, 2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - 2 * math.sqrt(A) * al]
+        else:
+            b = [(1 + c) / 2, -(1 + c), (1 + c) / 2]
+            a = [1 + al, -2 * c, 1 - al]
+        return b, a
+    y = lfilter(*biquad('shelf', 1681.97, .7072, 4.0), x, axis=0)
+    y = lfilter(*biquad('hp', 38.135, .5003), y, axis=0)
+    blk, hop = int(.4 * SR), int(.1 * SR)
+    z = np.array([(y[i:i + blk] ** 2).mean(0).sum() for i in range(0, len(y) - blk, hop)])
+    L = -.691 + 10 * np.log10(z + 1e-12)
+    z = z[L > -70]
+    rel = -.691 + 10 * np.log10(z.mean()) - 10
+    return -.691 + 10 * np.log10(z[-.691 + 10 * np.log10(z) > rel].mean())
+
+
+def true_peak(x):
+    return np.max(np.abs(resample_poly(x, 4, 1, axis=0)))
+
+
+def limit(x, ceil_db=-1.0, look=.0015, release=.08):
+    """Look-ahead true-peak limiter: 4x oversampled detection, gain ramps down before each peak and recovers smoothly."""
+    ceil = 10 ** (ceil_db / 20) * .985
+    up = np.abs(resample_poly(x, 4, 1, axis=0)).max(1)
+    pk = np.maximum(up[:len(up) // 4 * 4].reshape(-1, 4).max(1), np.abs(x[:len(up) // 4]).max(1))
+    g = np.minimum(1, ceil / (pk + 1e-9))
+    L = max(1, int(look * SR))
+    from scipy.ndimage import minimum_filter1d, uniform_filter1d
+    g = minimum_filter1d(g, L * 2 + 1, origin=-L)          # look ahead
+    g = uniform_filter1d(g, L * 2 + 1, origin=-L)
+    rc = 1 - math.exp(-1 / (release * SR))
+    out = np.empty_like(g); v = 1.0
+    for i, gi in enumerate(g):                             # instant attack (already ramped), smooth release
+        v = gi if gi < v else v + (gi - v) * rc
+        out[i] = v
+    out = np.minimum(out, g)
+    x = x[:len(out)] * out[:, None]
+    return np.pad(x, ((0, N - len(x)), (0, 0)))
+
+
+for _ in range(3):                                         # converge on -14 LUFS after limiting
+    mix *= 10 ** ((-14 - lufs(mix)) / 20)
+    mix = limit(mix)
+print(f'master: {lufs(mix):.1f} LUFS integrated, true peak {20 * np.log10(true_peak(mix)):.2f} dBTP')
 
 os.makedirs(os.path.join(ROOT, 'out'), exist_ok=True)
 wav = os.path.join(ROOT, 'out', 'track.wav')

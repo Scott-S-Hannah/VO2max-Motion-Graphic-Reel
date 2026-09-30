@@ -4,6 +4,8 @@
  *   node motion/tools/preview.cjs stills 1.2 15 30          -> motion/out/stills/*.png  (1080×1920 frames)
  *   node motion/tools/preview.cjs strip 11.0 12.4 8          -> filmstrip of 8 frames between two times
  *   node motion/tools/preview.cjs workspace                  -> screenshot of the full editing page
+ *   node motion/tools/preview.cjs video [K] [shutter] [a] [b] -> motion/out/vo2max_reel.mp4: every frame averaged from
+ *        K sub-frames over a 180° shutter (true motion blur), muxed with out/track.wav (needs FFMPEG or ffmpeg on PATH)
  * Serves the page wrapped in the same skeleton the Artifact viewer adds, and routes the cdnjs GSAP
  * script to a local copy (GSAP_DIR) when the sandbox cannot reach cdnjs.
  */
@@ -41,6 +43,25 @@ async function open(base, hash, viewport) {
   await page.evaluate(() => window.reel.ready);
   return { browser, page };
 }
+async function video(base, K = 8, shutter = .5, a = 0, b = 30) {
+  const { spawn } = require('child_process');
+  const FF = process.env.FFMPEG || 'ffmpeg', FPS = 30;
+  const { browser, page } = await open(base, '#render', { width: 1080, height: 1920 });
+  const silent = path.join(OUT, 'video_silent.mp4');
+  const ff = spawn(FF, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', silent], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const f0 = Math.round(a * FPS), f1 = Math.round(b * FPS), t0 = Date.now();
+  for (let f = f0; f < f1; f++) {
+    const url = await page.evaluate(([t, K, s]) => { window.reel.renderBlur(t, K, s); return document.getElementById('gl').toDataURL('image/jpeg', .96); }, [f / FPS, K, shutter]);
+    if (!ff.stdin.write(Buffer.from(url.split(',')[1], 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
+    if ((f - f0) % 30 === 29) console.log(`frame ${f + 1}/${f1}  ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+  }
+  ff.stdin.end(); await new Promise(r => ff.on('close', r)); await browser.close();
+  const wav = path.join(OUT, 'track.wav'), final = path.join(OUT, 'vo2max_reel.mp4');
+  await new Promise((res, rej) => spawn(FF, ['-y', '-loglevel', 'error', '-i', silent, '-ss', String(a), '-t', String(b - a), '-i', wav, '-map', '0:v', '-map', '1:a',
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-movflags', '+faststart', '-shortest', final], { stdio: 'inherit' }).on('close', c => (c ? rej(new Error('mux failed')) : res())));
+  console.log('wrote', final, `in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
+}
 (async () => {
   const [mode, ...args] = process.argv.slice(2);
   const base = await serve();
@@ -51,6 +72,7 @@ async function open(base, hash, viewport) {
     await page.setViewportSize({ width: 400, height: 860 }); await page.screenshot({ path: path.join(OUT, 'workspace-phone.png'), fullPage: true }); console.log('out/workspace-phone.png');
     return browser.close();
   }
+  if (mode === 'video') return video(base, ...args.map(Number));
   const { browser, page } = await open(base, '#render', { width: 1080, height: 1920 });
   const stage = page.locator('#stage');
   const shot = async (t, file) => { await page.evaluate(t => window.reel.seek(t), t); await stage.screenshot({ path: file }); };

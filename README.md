@@ -6,24 +6,33 @@ A 59-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It
 
 ## Live motion master (`motion/`): the source of truth
 
-`motion/index.html` is v4, a showreel-grade version rendered live on the GPU with WebGL2. It uses no libraries. The published version is at https://claude.ai/artifact/1bHyA2g5ZT3QWuynA4TSpY.
+`motion/index.html` is v5, a showreel-grade version rendered live on the GPU with WebGL2. It uses no libraries. The published version is at https://claude.ai/artifact/1bHyA2g5ZT3QWuynA4TSpY.
 
 The concept is oxygen as light, and one idea runs throughout: VO₂max is a ceiling. The ceiling is a beam of lime light.
 
-- **Renderer:** a background shader draws a nebula, the ceiling beam and the heart orb (fbm veins with a Fresnel rim). Up to 6,000 instanced particles are drawn as motion-streaked light. Type is drawn to a canvas and uploaded as a texture. The frame then goes through a four-level HDR bloom and a composite pass: shockwave distortion, chromatic aberration, a highlight shoulder, desaturation for the time-stop, vignette and grain.
-- **Determinism:** every element is a pure function of time. `reel.seek(t)` renders any frame exactly, and `index.html#render` gives a bare 1080×1920 stage for export.
-- **Type:** Figtree's variable weight is animated live (300→900 on slams, pulsing on heartbeats).
+- **Camera:** a real perspective camera that orbits, dollies and tracks around the story plane. Particles live in a 3D volume, so parallax is real and depth of field turns out-of-focus light into bokeh. The dive through the O flies the camera through the dust.
+- **Lit type:** type is drawn to two layers: world type sits on the story plane and is warped by the 3D camera, and screen type is flat. A type pass builds a bevel height map from the letters. The beam, the photon and the heart light them: diffuse, specular glints that bloom, cast shadows and glassy refraction at the edges.
+- **Colour script:** each act has its own grade. The hook is violet. The curve is cool blue. The name returns to violet and lime. The heart is warm red. The test is clinical cyan. The payoff is gold.
+- **Rendering:** a background shader draws the nebula, the beam and the heart, which squeezes into a heart shape on every beat. Up to 7,000 instanced particles are drawn as motion-streaked light. The frame then goes through a four-level HDR bloom with an anamorphic streak, and a composite pass: shockwaves, chromatic aberration, a highlight shoulder, desaturation for the time-stop, vignette and grain.
+- **Determinism and export:** every element is a pure function of time. `reel.seek(t)` renders any frame exactly. `reel.renderBlur(t, K)` averages K sub-frames over a 180° shutter for true motion blur. `index.html#render` gives a bare 1080×1920 stage.
+- **Live playback:** quality adapts. If a device cannot hold the frame rate, the page renders fewer pixels and restores them when it can.
 
 | Time | Beat | What happens |
 |---|---|---|
-| 0–4 s | **Hook** | A photon of oxygen launches with a comet trail and hits a descending beam. Shockwave and sparks. "YOUR BODY HAS A *ceiling.*" |
-| 4–10 s | **The curve** | The camera rides a river of particles that widens as effort rises and presses flat under the beam. "*until you can't.*" Time stops (desaturation, the particles freeze). "THAT LIMIT HAS A NAME" |
-| 10–15 s | **The name** | On the drop, the frozen river explodes and re-forms as V̇O₂max, and the beam becomes its underline. It decodes as volume per minute, of oxygen, at maximum effort. |
-| 15–21 s | **The heart** | The camera dives through the O into a living orb that pumps light down six vessels, with a pressure wave on every beat. "How much it can pump *usually sets the limit.*" |
-| 21–26 s | **The test** | The heart implodes into a point of light. "MEASURED *breath by breath.*" Breaths land as pulses, the trend is drawn in light, and the beam slams onto the plateau as V̇O₂max. |
-| 26–30 s | **The payoff** | "FIND YOUR CEILING." The photon returns and pushes the beam up as oxygen erupts past it. "*Then raise it.*" Logo, then fade to black, which is also the opening frame, so it loops. |
+| 0–4 s | **Hook** | From the first frame, a photon of oxygen is already in flight towards a descending beam. Shockwave and sparks. "YOUR BODY HAS A *ceiling.*" |
+| 4–10 s | **The curve** | The camera rides a river of particles that climbs with effort and presses flat under the beam. "*until you can't.*" Time stops: colour drains and the camera orbits the frozen river. "THAT LIMIT HAS A NAME" |
+| 10–15 s | **The name** | On the drop, the frozen river swoops through depth and re-forms as V̇O₂max, and the beam becomes its underline. It decodes as volume per minute, of oxygen, at maximum effort. |
+| 15–21 s | **The heart** | The camera dives through the O into a warm, living heart that squeezes and pumps light down six 3D vessels. "How much it can pump *usually sets the limit.*" |
+| 21–26 s | **The test** | The heart implodes into a point of light that unfolds into the lab's lattice. The camera tracks each breath as it drops onto the plane, then whips back square as the beam slams onto the plateau: V̇O₂max. |
+| 26–30 s | **The payoff** | "FIND YOUR CEILING." The photon returns and pushes the beam up as oxygen erupts past it towards the camera. "*Then raise it.*" Logo, then fade to black. |
 
-The soundtrack is `motion/tools/soundtrack.py`, fully synthesised and scored to the picture's cues at 120 bpm. It moves from A minor to C major at the payoff. Each visual event has its own sound: photon charge and laser launch, beam hum, impacts with reverse-reverb pre-swells, a tape-stop and frozen glass cluster for the time-stop, a granular particle swarm, heartbeats with a blood rush on every pump, and an implosion. During the test, every breath is a note whose pitch follows its V̇O₂ value, so you can hear the plateau. Running it also writes `motion/out/spectrogram.png` with the cues marked, and prints loudness and spectral balance for each section. Earlier versions are in `motion/archive/`: v2 (55 s, illustrated), and v3 (30 s, strict brand system).
+Every caption sits inside Instagram's safe zones (the "Safe zones" toggle shows them). The first frame is already in motion, so the reel works as a loop and as a thumbnail.
+
+The soundtrack is `motion/tools/soundtrack.py`, fully synthesised and scored to the picture's cues at 120 bpm. It moves from A minor to C major at the payoff. Each visual event has its own sound: the laser launch from frame 0, beam hum, impacts with reverse-reverb pre-swells, a tape-stop and frozen glass cluster for the time-stop, an air sweep that follows the orbit, a granular particle swarm, heartbeats with a blood rush on every pump, the implosion and the unfold, and the whip into the slam. During the test, every breath is a note whose pitch follows its V̇O₂ value, so you can hear the plateau. Moving sources are panned to where they are on screen. The master is normalised to −14 LUFS integrated (ITU-R BS.1770) with a 4× oversampled true-peak limiter at −1 dBTP. Running the script also writes `motion/out/spectrogram.png` with the cues marked, and prints loudness and spectral balance for each section.
+
+**Export:** `FFMPEG=… node motion/tools/preview.cjs video 8` renders every frame from 8 motion-blur sub-frames and muxes the track into `motion/out/vo2max_reel.mp4`. The finished file is copied to `out/vo2max_reel_v5.mp4`.
+
+Earlier versions are in `motion/archive/`: v2 (55 s, illustrated), v3 (30 s, strict brand system) and v4 (the first WebGL cut, flat camera).
 
 ## First-draft storyboard (`reel/`)
 
