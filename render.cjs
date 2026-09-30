@@ -15,8 +15,22 @@ const { chromium } = require('playwright');
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'out');
 const FFMPEG = process.env.FFMPEG || 'ffmpeg';
-const URL = 'file://' + path.join(ROOT, 'reel', 'index.html');
 const W = 1080, H = 1920;
+let URL = null;
+
+// Serve reel/ over http so photos can be drawn without tainting the canvas.
+const http = require('http');
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.woff2': 'font/woff2', '.jpg': 'image/jpeg', '.png': 'image/png' };
+function serve() {
+  const dir = path.join(ROOT, 'reel');
+  const srv = http.createServer((req, res) => {
+    const f = path.join(dir, decodeURIComponent(req.url.split('?')[0]));
+    if (!f.startsWith(dir) || !fs.existsSync(f) || fs.statSync(f).isDirectory()) { res.writeHead(404); return res.end(); }
+    res.writeHead(200, { 'Content-Type': MIME[path.extname(f)] || 'application/octet-stream' });
+    fs.createReadStream(f).pipe(res);
+  });
+  return new Promise(r => srv.listen(0, '127.0.0.1', () => { URL = `http://127.0.0.1:${srv.address().port}/index.html`; srv.unref(); r(); }));
+}
 
 async function openPage(browser) {
   const page = await browser.newPage({ viewport: { width: W, height: H }, deviceScaleFactor: 1 });
@@ -92,11 +106,11 @@ async function video(workers = 4) {
   const final = path.join(OUT, 'vo2max_reel.mp4');
   if (fs.existsSync(wav)) {
     await run(FFMPEG, ['-y', '-loglevel', 'error', '-i', silent, '-i', wav, '-map', '0:v', '-map', '1:a',
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-profile:v', 'high', '-level', '4.2', '-pix_fmt', 'yuv420p',
-      '-c:a', 'aac', '-b:a', '256k', '-ar', '48000', '-movflags', '+faststart', '-shortest', final]);
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', '21', '-profile:v', 'high', '-level', '4.2', '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-shortest', final]);
   } else fs.copyFileSync(silent, final);
   console.log('wrote', final, `in ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 }
 
 const [mode, ...rest] = process.argv.slice(2);
-(mode === 'stills' ? stills(rest) : video(Number(rest[0]) || 4)).catch(e => { console.error(e); process.exit(1); });
+serve().then(() => (mode === 'stills' ? stills(rest) : video(Number(rest[0]) || 4))).catch(e => { console.error(e); process.exit(1); });

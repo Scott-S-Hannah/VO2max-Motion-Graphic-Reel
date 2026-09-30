@@ -2,24 +2,27 @@
 /* =====================================================================
    What is VO2max? — motion graphic reel (1080x1920, 30 fps, 58 s)
    Deterministic canvas timeline: renderFrame(t) draws the frame at time t.
-   Brand: University of Winchester palette (Plum / Manhattan peach / Lochinvar teal), Figtree.
+   Brand: University of Winchester design system (Deep Purple / Bright Purple / Bright Green,
+   bespoke motifs, logo, Asset Bank photography). Type: Figtree throughout.
    ===================================================================== */
 const W = 1080, H = 1920, FPS = 30;
-const REEL = { DURATION: 58, FPS };
+const REEL = { DURATION: 59, FPS };
 window.REEL = REEL;
 const cv = document.getElementById('c');
 const ctx = cv.getContext('2d');
 
 const C = {
-  plum: '#702A69', plumMid: '#8E3F86', plumDeep: '#3E1339', plumInk: '#1E0A1C',
-  peach: '#F2BF94', peachDeep: '#C97A45', teal: '#257478', tealLight: '#6BBAB6', tealDeep: '#123F42',
-  cream: '#FBF4EC',
+  // University of Winchester tokens (Claude Design system "University of Winchester")
+  deep: '#291647', deep90: '#3e2d5a', deep75: '#5f5075', deep60: '#7e7391',
+  bp: '#c68efd', bp60: '#ddbbfe', bg: '#d4ef70', bg60: '#e5f5a9',
+  grey: '#706e6c', grey60: '#a9a8a7', light: '#e6ebeb', white: '#ffffff', tableHead: '#efecf6',
+  // archival (1923) treatment
   paper: '#E9DBBF', paperLight: '#F3E9D6', paperDark: '#BFA27A', ink: '#3A2716', inkSoft: '#6E5537',
-  lab: '#170915', stamp: '#7A2A55',
+  stamp: '#291647',
 };
 
 // Scene start times (s). Music is 120 bpm from T.name, every cut lands on a beat.
-const T = { open: 0, graph: 8, name: 14.5, path: 21, units: 31, test: 38.5, why: 47, outro: 54, end: 58 };
+const T = { open: 0, graph: 8, name: 14.5, path: 21, units: 31, test: 38.5, why: 47, outro: 54, end: 59 };
 
 /* ---------------------------------------------------------------- utils */
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
@@ -66,10 +69,13 @@ function parseRich(str) {
   }
   return toks;
 }
-const fontFor = (o, mode) => `${o.italic ? 'italic ' : ''}${o.weight || 500} ${mode === 'n' ? o.size : o.size * 0.62}px Figtree`;
+const fontFor = (o, mode, hl) => {
+  const it = o.italic || (hl && o.hlItalic), wt = hl && o.hlWeight ? o.hlWeight : o.weight || 500;
+  return `${it ? 'italic ' : ''}${wt} ${mode === 'n' ? o.size : o.size * 0.62}px Figtree`;
+};
 const layoutCache = new Map();
 function layout(str, o) {
-  const key = [str, o.size, o.weight || 500, o.italic ? 1 : 0, o.maxW || 0, o.ls || 0, o.lh || 0].join('|');
+  const key = [str, o.size, o.weight || 500, o.italic ? 1 : 0, o.maxW || 0, o.ls || 0, o.lh || 0, o.hlItalic ? 1 : 0, o.hlWeight || 0].join('|');
   if (layoutCache.has(key)) return layoutCache.get(key);
   const toks = parseRich(str);
   const words = []; let cur = [];
@@ -97,7 +103,7 @@ function layout(str, o) {
     for (const r of runs) {
       const s = r.mode === 'n' ? o.size : o.size * 0.62;
       if (r.custom) r.w = CUSTOM[r.text] * s + (o.ls || 0);
-      else { ctx.font = fontFor(o, r.mode); r.w = ctx.measureText(r.text).width; }
+      else { ctx.font = fontFor(o, r.mode, r.hl); r.w = ctx.measureText(r.text).width; }
       r.x = x; x += r.w;
     }
     built.push({ runs, w: x, n: runs.reduce((a, r) => a + r.text.length, 0) });
@@ -160,7 +166,7 @@ function drawMark(mark, ch, x, y, w, s, o) {
 function text(str, x, y, o) {
   const L = layout(str, o);
   const align = o.align || 'left';
-  const col = o.color || C.cream, hlc = o.hl || C.peach;
+  const col = o.color || C.white, hlc = o.hl || C.bg;
   const gap = o.gap ?? 0.055, dur = o.dur ?? 0.55;
   const baseA = ctx.globalAlpha;
   ctx.save();
@@ -191,7 +197,7 @@ function text(str, x, y, o) {
         ctx.fillStyle = ctx.strokeStyle = r.hl ? hlc : col;
         ctx.globalAlpha = baseA * (o.alpha ?? 1) * a;
         if (r.custom) drawGlyph(r.text, rx, by, s, o.weight || 500);
-        else { ctx.font = fontFor(o, r.mode); ctx.fillText(txt, rx, by); }
+        else { ctx.font = fontFor(o, r.mode, r.hl); ctx.fillText(txt, rx, by); }
         if (r.mark) drawMark(r.mark, r.text, rx, by, r.w - (o.ls || 0), s, o);
       }
     }
@@ -234,6 +240,12 @@ window.reelReady = (async () => {
   await document.fonts.ready;
   // Optional real archival photo: drop a public-domain portrait at reel/assets/av-hill.jpg
   await loadImg('hill', 'assets/av-hill.jpg');
+  // Brand assets from the University of Winchester design system
+  await Promise.all([
+    loadImg('lab', 'assets/lab-treadmill.jpg'),
+    loadImg('mask', 'assets/mask-portrait.jpg'),
+    loadImg('logo', 'assets/uow-logo-banner-white.png'),
+  ]);
   initTextures();
   return true;
 })();
@@ -249,58 +261,65 @@ function bgPaper() {
   ctx.fillStyle = g; ctx.fillRect(-20, -20, W + 40, H + 40);
   ctx.save(); ctx.globalCompositeOperation = 'multiply'; ctx.globalAlpha = 0.35; ctx.drawImage(STAIN, 0, 0); ctx.restore();
 }
-function contours(t, col, alpha, n = 16) {
-  ctx.save(); ctx.strokeStyle = col; ctx.globalAlpha = alpha; ctx.lineWidth = 2;
-  for (let i = 0; i < n; i++) {
-    const base = -120 + i * (H + 240) / (n - 1);
-    ctx.beginPath();
-    for (let x = -24; x <= W + 24; x += 24) {
-      const y = base + 40 * Math.sin(x * 0.0045 + t * 0.35 + i * 0.7) + 22 * Math.sin(x * 0.011 - t * 0.22 + i * 1.3);
-      x === -24 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
-}
 function blob(x, y, r, col, a) {
   ctx.save(); const g = ctx.createRadialGradient(x, y, 0, x, y, r);
   g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
   ctx.globalAlpha = a; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.restore();
 }
-function bgPlum(t) {
-  const g = ctx.createLinearGradient(0, 0, W * 0.3, H);
-  g.addColorStop(0, C.plumInk); g.addColorStop(0.55, C.plumDeep); g.addColorStop(1, C.plum);
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  blob(540 + 220 * Math.sin(t * 0.4), 700 + 120 * Math.cos(t * 0.3), 700, C.plumMid, 0.55);
-  blob(200 + 120 * Math.cos(t * 0.5), 1650, 650, C.teal, 0.35);
-  contours(t, C.peach, 0.07);
+
+/* ------------------------------------------------ brand motifs (UoW)
+   The eight bespoke motifs, in their fixed order, as single-colour shapes
+   (paths copied from the University of Winchester design system, 80.94 unit box). */
+const MOTIF_D = [
+  'M74.36 34.58C70.41 32.24 66.69 31.65 64.63 31.48C64.43 28.77 64.32 24.07 60.7 20.63C55.94 16.09 50.6 17.04 49.72 17.05C49.85 14.89 49.78 12.97 49.27 11.24C48.4 8.3 46.9 6.39 44.69 4.01C42.97 2.17 40.47 0 40.47 0C40.47 0 37.97 2.17 36.25 4.01C34.04 6.39 32.54 8.3 31.67 11.24C31.15 12.97 31.09 14.89 31.22 17.05C30.34 17.04 25 16.09 20.24 20.63C16.62 24.07 16.51 28.77 16.31 31.48C14.25 31.65 10.53 32.24 6.58 34.58C3.3 36.53 1.19 38.9 0 40.47C1.19 42.04 3.3 44.41 6.58 46.36C10.53 48.7 14.25 49.29 16.31 49.46C16.51 52.16 16.62 56.86 20.24 60.31C25 64.85 30.34 63.9 31.22 63.89C31.09 66.04 31.15 67.97 31.67 69.7C32.54 72.64 34.04 74.54 36.25 76.92C37.97 78.77 40.47 80.94 40.47 80.94C40.47 80.94 42.97 78.77 44.69 76.92C46.9 74.54 48.4 72.64 49.27 69.7C49.78 67.97 49.85 66.04 49.72 63.89C50.6 63.9 55.94 64.85 60.7 60.31C64.32 56.86 64.43 52.16 64.63 49.46C66.69 49.29 70.41 48.7 74.36 46.36C77.64 44.41 79.75 42.04 80.94 40.47C79.75 38.9 77.64 36.53 74.36 34.58Z',
+  'M63.99 0L63.99 17.11L16.95 17.11L16.95 0L0 0L0 80.94L16.95 80.94L16.95 41.94C20.69 37.48 27.89 31.54 40.73 29.3L40.74 29.3C53 31.44 60.12 36.96 63.99 41.34L63.99 80.94L80.94 80.94L80.94 0L63.99 0Z',
+  'M67.14 39.77C57.19 39.77 41.17 23.75 41.17 13.8C41.17 13.41 40.86 13.09 40.47 13.09C40.08 13.09 39.77 13.41 39.77 13.8C39.77 23.75 23.75 39.77 13.8 39.77C13.41 39.77 13.09 40.08 13.09 40.47C13.09 40.86 13.41 41.17 13.8 41.17C23.75 41.17 39.77 57.19 39.77 67.14C39.77 67.53 40.08 67.84 40.47 67.84C40.86 67.84 41.17 67.53 41.17 67.14C41.17 57.19 57.19 41.17 67.14 41.17C67.53 41.17 67.84 40.86 67.84 40.47C67.84 40.08 67.53 39.77 67.14 39.77ZM9.27 40.47C9.27 43.03 7.2 45.1 4.64 45.1C2.08 45.1 0 43.03 0 40.47C0 37.91 2.08 35.83 4.64 35.83C7.2 35.83 9.27 37.91 9.27 40.47ZM80.94 40.47C80.94 43.03 78.86 45.1 76.3 45.1C73.74 45.1 71.67 43.03 71.67 40.47C71.67 37.91 73.74 35.83 76.3 35.83C78.86 35.83 80.94 37.91 80.94 40.47ZM45.1 4.54C45.1 7.05 43.07 9.09 40.56 9.09C38.05 9.09 36.02 7.05 36.02 4.54C36.02 2.03 38.05 0 40.56 0C43.07 0 45.1 2.03 45.1 4.54ZM45.1 76.3C45.1 78.86 43.03 80.94 40.47 80.94C37.91 80.94 35.83 78.86 35.83 76.3C35.83 73.74 37.91 71.67 40.47 71.67C43.03 71.67 45.1 73.74 45.1 76.3Z',
+  'M20.5 80.91L46.8 80.91L52.7 73.63L20.5 80.9L20.5 80.91ZM80.97 35.63L73.2 0L46.35 0L43.29 0L80.97 49.81L80.97 35.63ZM10.88 0L0 0L0 43.05L17.36 80.94L21.29 80.94L21.36 80.92L12.39 2.61L53.57 73.65L52.24 64.16L76.63 64.16L80.97 59.86L80.97 56.61L52.16 63.59L43.29 0L12.09 0L10.88 0Z',
+  'M36.17 56.91C41.86 42.65 42.15 22.9 21.8 0C-23.56 40.57 15.45 78.17 18.19 80.71L18.3 80.79C19.48 79.88 26.87 73.94 32.6 64.18C29.68 72.17 29.82 79.45 29.86 80.56L29.87 80.67C29.87 80.69 29.87 80.7 29.87 80.7C32.48 81.04 69.94 85 72.5 41.57C52.46 40.46 41.82 48.09 36.17 56.91Z',
+  'M31.36 0V47.51H39.63V0ZM28.41 47.51V80.94H31.31V47.51ZM39.63 47.51V80.94H42.54V47.51ZM47 47.51V80.94H49.91V47.51ZM68.22 47.51V80.94H71.12V47.51ZM2.4 47.51V80.94H5.31V47.51ZM22.51 0V47.51H25.42V0ZM11.25 0V47.51H14.15V0ZM44.1 0V47.51H47V0ZM51.47 0V47.51H54.38V0ZM62.74 0V47.51H65.65V0ZM71.12 0V47.51H74.03V0ZM0 0V47.51H2.91V0ZM14.15 47.51V80.94H22.51V47.51ZM54.38 47.51V80.94H62.74V47.51Z',
+  'M74.34 53.43C74.23 47.78 71 42.92 66.32 40.47C71.18 37.92 74.45 32.78 74.34 26.92C74.17 18.65 67.35 12.09 59.08 12.25C56.55 12.3 54.18 12.98 52.11 14.13C51.67 6.12 44.96 -0.16 36.87 0C28.99 0.16 22.65 6.38 22.23 14.13C20 12.89 17.41 12.2 14.67 12.25C6.4 12.42 -0.16 19.25 0 27.51C0.11 33.16 3.35 38.01 8.02 40.47C3.16 43.02 -0.11 48.16 0 54.02C0.17 62.28 7 68.84 15.26 68.68C17.79 68.63 20.16 67.95 22.23 66.8C22.67 74.81 29.38 81.09 37.47 80.93C45.35 80.78 51.69 74.55 52.11 66.8C54.35 68.04 56.93 68.73 59.68 68.68C67.94 68.52 74.5 61.69 74.34 53.43M37.47 55.42C29.2 55.59 22.38 49.02 22.21 40.76C22.05 32.5 28.61 25.67 36.87 25.51C45.14 25.35 51.96 31.91 52.13 40.17C52.29 48.43 45.73 55.26 37.47 55.42Z',
+  'M80.94 0L80.94 31.44L15.43 0L80.94 0ZM0 80.94L0 15.43L31.44 80.94L0 80.94ZM42.96 80.94L80.94 80.94L80.94 42.97L7.91 7.91L42.96 80.94M50.69 69.75L32.54 31.94L70.34 50.09L70.34 69.75L50.69 69.75Z',
+];
+const MOTIF = MOTIF_D.map(d => new Path2D(d));
+const MQ = 80.94;
+// draw motif i centred at (x,y), size px, rotation rad
+function motif(i, x, y, size, col, rot = 0, a = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); const k = size / MQ; ctx.scale(k, k); ctx.translate(-MQ / 2, -MQ / 2);
+  ctx.globalAlpha *= a; ctx.fillStyle = col; ctx.fill(MOTIF[i]); ctx.restore();
 }
-function bgCream(t) {
-  ctx.fillStyle = C.cream; ctx.fillRect(0, 0, W, H);
-  blob(900, 300 + 60 * Math.sin(t * 0.5), 650, C.peach, 0.35);
-  blob(150, 1700, 700, C.tealLight, 0.14);
-  ctx.save(); ctx.fillStyle = C.plum; ctx.globalAlpha = 0.07;
-  const off = (t * 12) % 48;
-  for (let y = -48 + off; y < H + 48; y += 48) for (let x = 24; x < W; x += 48) { circle(x, y, 2.2); ctx.fill(); }
-  ctx.restore();
+// MotifStrip: all eight in fixed order, one colour, gap 17% of height; revealed left to right by p
+function motifStrip(cx, y, h, col, p = 1) {
+  const gap = h * 0.17, total = 8 * h + 7 * gap;
+  for (let i = 0; i < 8; i++) {
+    const q = E.outBack(clamp(p * 8 - i));
+    if (q <= 0) continue;
+    const x = cx - total / 2 + i * (h + gap) + h / 2;
+    ctx.save(); ctx.translate(x, y + h / 2); ctx.scale(q, q); motif(i, 0, 0, h, col); ctx.restore();
+  }
 }
-function bgLab(t) {
-  ctx.fillStyle = C.lab; ctx.fillRect(0, 0, W, H);
-  blob(540, 1050, 900, C.tealDeep, 0.9);
-  blob(900, 420, 500, C.plumDeep, 0.8);
-  ctx.save(); ctx.strokeStyle = C.tealLight; ctx.globalAlpha = 0.06; ctx.lineWidth = 1;
-  for (let x = 0; x <= W; x += 60) line(x, 0, x, H);
-  for (let y = (t * 20) % 60; y <= H; y += 60) line(0, y, W, y);
-  ctx.restore();
+// PatternPanel-style background: a motif enlarged across the ground in the ground's tint
+function motifPattern(i, t, col, a = 1, cfg = {}) {
+  const { x = 760, y = 1180, size = 1500, drift = 1 } = cfg;
+  motif(i, x + 40 * Math.sin(t * 0.25 * drift), y + 30 * Math.cos(t * 0.2 * drift), size, col, 0.04 * Math.sin(t * 0.15), a);
+}
+
+/* ------------------------------------------------------------- grounds */
+function bgDeep(t, mi, cfg) {
+  ctx.fillStyle = C.deep; ctx.fillRect(0, 0, W, H);
+  motifPattern(mi, t, C.deep90, 1, cfg);
+}
+function bgWhite(t, mi, cfg) {
+  ctx.fillStyle = C.white; ctx.fillRect(0, 0, W, H);
+  motifPattern(mi, t, C.light, 0.7, cfg);
 }
 function hud(ch, onLight, a = 1) {
-  const col = onLight ? C.plum : C.cream, acc = onLight ? C.teal : C.peach;
+  const col = onLight ? C.deep : C.white, acc = onLight ? C.deep : C.bg;
   withAlpha(a, () => {
-    text('V̇O_{2}max  EXPLAINED', 80, 232, { size: 24, weight: 800, ls: 3, color: col, alpha: 0.85 });
-    text(`0${ch} / 05`, 1000, 232, { size: 24, weight: 700, ls: 2, color: col, align: 'right', alpha: 0.85 });
+    text('V̇O_{2}max  EXPLAINED', 80, 232, { size: 24, weight: 800, ls: 3, color: col });
+    text(`0${ch} / 05`, 1000, 232, { size: 24, weight: 800, ls: 2, color: col, align: 'right' });
     for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = i < ch ? acc : col; ctx.globalAlpha = a * (i < ch ? 1 : 0.2);
-      rrect(1000 - (5 - i) * 30 + 4, 250, 22, 5, 3); ctx.fill();
+      ctx.fillStyle = i < ch ? acc : col; ctx.globalAlpha = a * (i < ch ? 1 : 0.25);
+      ctx.fillRect(1000 - (5 - i) * 30 + 4, 250, 22, 5);
     }
   });
 }
@@ -419,15 +438,12 @@ function lungs(cx, cy, s, breath) {
     ctx.bezierCurveTo(sgn * 30, 115, sgn * 22, 90, sgn * 22, 60);
     ctx.closePath();
   };
-  for (const sgn of [-1, 1]) {
-    const g = ctx.createLinearGradient(0, -130, 0, 130); g.addColorStop(0, C.plumMid); g.addColorStop(1, C.plum);
-    ctx.fillStyle = g; lobe(sgn); ctx.fill();
-  }
-  ctx.strokeStyle = C.peach; ctx.lineCap = 'round'; ctx.lineWidth = 16;
+  ctx.fillStyle = C.deep; lobe(-1); ctx.fill(); lobe(1); ctx.fill();
+  ctx.strokeStyle = C.deep; ctx.lineCap = 'round'; ctx.lineWidth = 16;
   line(0, -170, 0, -60);
-  ctx.lineWidth = 9;
+  ctx.strokeStyle = C.bg; ctx.lineWidth = 9;
   for (const sgn of [-1, 1]) {
-    ctx.beginPath(); ctx.moveTo(0, -60); ctx.quadraticCurveTo(sgn * 30, -40, sgn * 60, -20); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(sgn * 22, -50); ctx.quadraticCurveTo(sgn * 40, -35, sgn * 60, -20); ctx.stroke();
     ctx.lineWidth = 5;
     ctx.beginPath(); ctx.moveTo(sgn * 60, -20); ctx.lineTo(sgn * 95, -55); ctx.moveTo(sgn * 60, -20); ctx.lineTo(sgn * 100, 20);
     ctx.moveTo(sgn * 60, -20); ctx.lineTo(sgn * 70, 70); ctx.moveTo(sgn * 85, 5); ctx.lineTo(sgn * 110, 60); ctx.stroke();
@@ -437,38 +453,35 @@ function lungs(cx, cy, s, breath) {
 }
 function heart(cx, cy, s, pulse) {
   ctx.save(); ctx.translate(cx, cy); const k = s / 2 * (1 + 0.1 * pulse); ctx.scale(k, k);
-  blob(0, 0, 0.9, C.peach, 0.5 * pulse);
+  blob(0, 0, 0.9, C.bp, 0.55 * pulse);
   ctx.beginPath();
   ctx.moveTo(0, 0.42);
   ctx.bezierCurveTo(-0.55, 0.05, -0.62, -0.42, -0.28, -0.46);
   ctx.bezierCurveTo(-0.12, -0.47, -0.02, -0.36, 0, -0.26);
   ctx.bezierCurveTo(0.02, -0.36, 0.12, -0.47, 0.28, -0.46);
   ctx.bezierCurveTo(0.62, -0.42, 0.55, 0.05, 0, 0.42);
-  const g = ctx.createLinearGradient(0, -0.5, 0, 0.45); g.addColorStop(0, '#B23A5E'); g.addColorStop(1, C.plum);
-  ctx.fillStyle = g; ctx.fill();
-  ctx.strokeStyle = C.cream; ctx.globalAlpha = 0.6; ctx.lineWidth = 0.035; ctx.lineCap = 'round';
+  ctx.fillStyle = C.deep; ctx.fill();
+  ctx.strokeStyle = C.bp; ctx.lineWidth = 0.045; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.arc(-0.24, -0.24, 0.13, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke();
   ctx.restore();
 }
 function muscle(cx, cy, s, t) {
   ctx.save(); ctx.translate(cx, cy); ctx.scale(s / 300, s / 300);
-  ctx.strokeStyle = C.peach; ctx.lineWidth = 10; ctx.lineCap = 'round';
+  ctx.strokeStyle = C.deep; ctx.lineWidth = 10; ctx.lineCap = 'round';
   line(-150, 0, -110, 0); line(110, 0, 150, 0);
   ctx.beginPath(); ctx.moveTo(-115, 0);
   ctx.bezierCurveTo(-60, -95, 60, -95, 115, 0); ctx.bezierCurveTo(60, 95, -60, 95, -115, 0);
-  const g = ctx.createLinearGradient(0, -80, 0, 80); g.addColorStop(0, '#B23A5E'); g.addColorStop(1, C.plum);
-  ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = C.deep; ctx.fill();
   ctx.save(); ctx.clip();
-  ctx.strokeStyle = 'rgba(251,244,236,0.28)'; ctx.lineWidth = 3;
+  ctx.strokeStyle = C.deep75; ctx.lineWidth = 3;
   for (let i = -4; i <= 4; i++) { ctx.beginPath(); ctx.moveTo(-120, i * 16); ctx.bezierCurveTo(-40, i * 22, 40, i * 22, 120, i * 16); ctx.stroke(); }
   ctx.restore();
-  // mitochondria
   [[-45, -18, 0.2], [30, 22, -0.25], [55, -30, 0.35]].forEach(([mx, my, rot], i) => {
     ctx.save(); ctx.translate(mx, my); ctx.rotate(rot);
     const glow = 0.5 + 0.5 * Math.sin(t * 6 + i * 2);
-    blob(0, 0, 55, C.peach, 0.35 * glow);
-    ctx.fillStyle = C.peach; ctx.beginPath(); ctx.ellipse(0, 0, 30, 15, 0, 0, 7); ctx.fill();
-    ctx.strokeStyle = C.plum; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-22, 0);
+    blob(0, 0, 55, C.bg, 0.3 * glow);
+    ctx.fillStyle = C.bg; ctx.beginPath(); ctx.ellipse(0, 0, 30, 15, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = C.deep; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-22, 0);
     for (let k = 0; k < 6; k++) ctx.lineTo(-18 + k * 7.5, k % 2 ? -8 : 8);
     ctx.stroke(); ctx.restore();
   });
@@ -480,18 +493,23 @@ function iconStopwatch(x, y, r, col, t) {
   const a = t * 4; line(x, y + 4, x + Math.sin(a) * r * 0.7, y + 4 - Math.cos(a) * r * 0.7);
   ctx.restore();
 }
-function iconArrowUp(x, y, r, col, fg) {
-  ctx.save(); ctx.fillStyle = col; circle(x, y, r); ctx.fill();
-  ctx.strokeStyle = fg; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  ctx.beginPath(); ctx.moveTo(x - r * 0.45, y + r * 0.3); ctx.lineTo(x - r * 0.1, y - r * 0.05); ctx.lineTo(x + r * 0.12, y + r * 0.15); ctx.lineTo(x + r * 0.45, y - r * 0.3);
-  ctx.moveTo(x + r * 0.2, y - r * 0.32); ctx.lineTo(x + r * 0.45, y - r * 0.3); ctx.lineTo(x + r * 0.45, y - r * 0.05); ctx.stroke();
+// KeyIcon-style tile: rounded square in a primary colour with a Deep Purple line icon
+function keyTile(x, y, s, bgc) { ctx.fillStyle = bgc; rrect(x - s / 2, y - s / 2, s, s, s * 0.22); ctx.fill(); }
+function iconArrowUp(x, y, r, fg) {
+  ctx.save(); ctx.strokeStyle = fg; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x - r * 0.5, y + r * 0.3); ctx.lineTo(x - r * 0.12, y - r * 0.05); ctx.lineTo(x + r * 0.12, y + r * 0.15); ctx.lineTo(x + r * 0.5, y - r * 0.3);
+  ctx.moveTo(x + r * 0.22, y - r * 0.32); ctx.lineTo(x + r * 0.5, y - r * 0.3); ctx.lineTo(x + r * 0.5, y - r * 0.02); ctx.stroke();
   ctx.restore();
 }
-function iconHeartbeat(x, y, r, col, fg) {
-  ctx.save(); ctx.fillStyle = col; circle(x, y, r); ctx.fill();
-  ctx.strokeStyle = fg; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+function iconHeartbeat(x, y, r, fg) {
+  ctx.save(); ctx.strokeStyle = fg; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   ctx.beginPath(); ctx.moveTo(x - r * 0.6, y); ctx.lineTo(x - r * 0.25, y); ctx.lineTo(x - r * 0.1, y - r * 0.4); ctx.lineTo(x + r * 0.1, y + r * 0.4); ctx.lineTo(x + r * 0.25, y); ctx.lineTo(x + r * 0.6, y); ctx.stroke();
   ctx.restore();
+}
+// brand bullet / arrow: solid triangle
+function triangle(x, y, s, col, dir = 0) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(dir); ctx.fillStyle = col;
+  ctx.beginPath(); ctx.moveTo(s * 0.6, 0); ctx.lineTo(-s * 0.4, -s * 0.55); ctx.lineTo(-s * 0.4, s * 0.55); ctx.closePath(); ctx.fill(); ctx.restore();
 }
 
 /* ===================================================== SCENE 1: ORIGIN */
@@ -694,8 +712,8 @@ function sceneGraph(u) {
   const glow = P(u, 4.7, 5.2);
   if (dp > 0) {
     ctx.save();
-    ctx.strokeStyle = glow > 0 ? C.peachDeep : C.stamp; ctx.lineWidth = 4 + 3 * glow; ctx.setLineDash([18, 12]);
-    if (glow > 0) { ctx.shadowColor = C.peach; ctx.shadowBlur = 40 * glow; }
+    ctx.strokeStyle = glow > 0 ? '#9DB83A' : C.stamp; ctx.lineWidth = 4 + 3 * glow; ctx.setLineDash([18, 12]);
+    if (glow > 0) { ctx.shadowColor = C.bg; ctx.shadowBlur = 40 * glow; }
     line(gx(0.02), gy(G.cap) - 14, gx(0.02 + 0.96 * dp), gy(G.cap) - 14);
     ctx.restore();
     text('CEILING', gx(0.98), gy(G.cap) - 36, { size: 30, weight: 900, ls: 8, color: C.stamp, align: 'right', rt: u - 4.0 });
@@ -729,7 +747,7 @@ function filmBurn(cx, cy, r, u) {
   sceneName(u - 6.5);
   // glowing rim
   const rg = ctx.createRadialGradient(cx, cy, Math.max(0, r * 0.85 - 30), cx, cy, r * 1.1);
-  rg.addColorStop(0, 'rgba(242,191,148,0)'); rg.addColorStop(0.8, 'rgba(242,160,100,0.55)'); rg.addColorStop(1, 'rgba(255,230,190,0.95)');
+  rg.addColorStop(0, 'rgba(212,239,112,0)'); rg.addColorStop(0.8, 'rgba(198,142,253,0.45)'); rg.addColorStop(1, 'rgba(212,239,112,0.95)');
   ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
   ctx.restore();
   // embers
@@ -737,14 +755,15 @@ function filmBurn(cx, cy, r, u) {
   for (let i = 0; i < 40; i++) {
     const a = rnd() * Math.PI * 2, d = r * (1.02 + rnd() * 0.15) + (u - 5) * 60 * rnd();
     const x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d - (u - 5) * 90 * rnd();
-    ctx.fillStyle = `rgba(255,${180 + rnd() * 60},120,${0.8 * rnd()})`; circle(x, y, 2 + rnd() * 3); ctx.fill();
+    ctx.fillStyle = rnd() < 0.5 ? `rgba(212,239,112,${0.9 * rnd()})` : `rgba(198,142,253,${0.9 * rnd()})`; circle(x, y, 2 + rnd() * 3); ctx.fill();
   }
 }
 
 /* ===================================================== SCENE 3: NAME */
-function vo2Title(cx, baseY, big, u, t0, spread, colV = C.cream, colO = C.peach, colMax = C.cream) {
+function vo2Title(cx, baseY, big, u, t0, spread, cols = {}) {
+  const { v = C.bg, o = C.bg, max = C.white, dot = C.bp } = cols;
   const sub = big * 0.5;
-  const fV = `800 ${big}px Figtree`, fS = `800 ${sub}px Figtree`, fM = `600 ${sub}px Figtree`;
+  const fV = `800 ${big}px Figtree`, fS = `800 ${sub}px Figtree`, fM = `italic 600 ${sub}px Figtree`;
   ctx.save();
   ctx.font = fV; const wV = ctx.measureText('V').width, wO = ctx.measureText('O').width;
   ctx.font = fS; const w2 = ctx.measureText('2').width;
@@ -753,10 +772,10 @@ function vo2Title(cx, baseY, big, u, t0, spread, colV = C.cream, colO = C.peach,
   const total = wV + wO + w2 + wM + 6 + g * 2;
   let x = cx - total / 2;
   const pieces = [
-    { s: 'V', f: fV, x, w: wV, dy: 0, col: colV, grp: 0 },
-    { s: 'O', f: fV, x: x += wV + g, w: wO, dy: 0, col: colO, grp: 1 },
-    { s: '2', f: fS, x: x += wO, w: w2, dy: big * 0.16, col: colO, grp: 1 },
-    { s: 'max', f: fM, x: x += w2 + 6 + g, w: wM, dy: big * 0.16, col: colMax, grp: 2 },
+    { s: 'V', f: fV, x, dy: 0, col: v },
+    { s: 'O', f: fV, x: x += wV + g, dy: 0, col: o },
+    { s: '2', f: fS, x: x += wO, dy: big * 0.16, col: o },
+    { s: 'max', f: fM, x: x += w2 + 6 + g, dy: big * 0.16, col: max },
   ];
   pieces.forEach((pc, i) => {
     const p = P(u, t0 + i * 0.12, t0 + i * 0.12 + 0.6);
@@ -764,52 +783,50 @@ function vo2Title(cx, baseY, big, u, t0, spread, colV = C.cream, colO = C.peach,
     ctx.globalAlpha = clamp(p * 3); ctx.fillStyle = pc.col; ctx.font = pc.f;
     ctx.fillText(pc.s, pc.x, baseY + pc.dy - (1 - E.outBack(p)) * 180);
   });
-  // rate dot above V
   const dp = P(u, t0 + 0.75, t0 + 1.05);
   if (dp > 0) {
-    ctx.globalAlpha = 1; ctx.fillStyle = C.peach;
+    ctx.globalAlpha = 1; ctx.fillStyle = dot;
     circle(pieces[0].x + wV / 2, baseY - big * 0.83, big * 0.062 * E.outBack(dp)); ctx.fill();
     const rp = P(u, t0 + 0.8, t0 + 1.4);
-    ctx.strokeStyle = C.peach; ctx.lineWidth = 3; ctx.globalAlpha = 1 - rp;
+    ctx.strokeStyle = dot; ctx.lineWidth = 3; ctx.globalAlpha = 1 - rp;
     circle(pieces[0].x + wV / 2, baseY - big * 0.83, big * 0.07 + rp * 60); ctx.stroke();
   }
   ctx.restore();
-  return [
-    pieces[0].x + wV / 2,
-    (pieces[1].x + pieces[2].x + w2) / 2,
-    pieces[3].x + wM / 2,
-  ];
+  return [pieces[0].x + wV / 2, (pieces[1].x + pieces[2].x + w2) / 2, pieces[3].x + wM / 2];
+}
+// CopyFrame: Bright Purple panel with a Deep Purple motif (the leaves) cropped into its foot
+function copyFrame(x, y, w, h, motifSize = 250) {
+  ctx.save(); ctx.fillStyle = C.bp; rrect(x, y, w, h, 12); ctx.fill(); ctx.clip();
+  motif(4, x + w - motifSize * 0.12, y + h + motifSize * 0.14, motifSize, C.deep);
+  ctx.restore();
 }
 function sceneName(u) {
   const t = T.name + u;
-  bgPlum(t);
+  bgDeep(t, 0, { x: 860, y: 1560, size: 1300 });
   hud(1, false, E.outCubic(P(u, 0.2, 0.8)));
-  text('A century later, we call it', 540, 560, { size: 46, weight: 500, color: C.cream, alpha: 0.8, align: 'center', rt: u - 0.1 });
+  text('A century later, we call it', 540, 560, { size: 46, weight: 500, color: C.white, align: 'center', rt: u - 0.1 });
   const spread = E.inOutCubic(P(u, 2.0, 2.6));
   const cols = vo2Title(540, 880, 290, u, 0.45, spread);
-  const labels = [['Volume', 'per minute (the dot)'], ['of Oxygen', 'taken up & used'], ['Maximum', 'at all-out effort']];
-  const lc = [C.cream, C.peach, C.cream];
+  const labels = [['Volume', 'per minute (the dot)'], ['of oxygen', 'taken up and used'], ['Maximum', 'at all-out effort']];
   labels.forEach(([a, b], i) => {
     const p = P(u, 2.3 + i * 0.3, 2.8 + i * 0.3);
     if (p <= 0) return;
     const e = E.outCubic(p), x = cols[i];
-    ctx.save(); ctx.strokeStyle = C.peach; ctx.lineWidth = 3; line(x, 930, x, 930 + 70 * e);
-    ctx.fillStyle = C.peach; circle(x, 1000, 7 * e); ctx.fill(); ctx.restore();
-    text(a, x, 1060, { size: 40, weight: 800, color: lc[i], align: 'center', rt: u - 2.45 - i * 0.3 });
-    text(b, x, 1102, { size: 26, weight: 500, color: C.cream, alpha: 0.72, align: 'center', rt: u - 2.55 - i * 0.3 });
+    ctx.save(); ctx.strokeStyle = C.bp; ctx.lineWidth = 3; line(x, 930, x, 930 + 64 * e);
+    triangle(x, 1000, 18 * e, C.bp, Math.PI / 2); ctx.restore();
+    text(a, x, 1062, { size: 40, weight: 800, color: C.bp, align: 'center', rt: u - 2.45 - i * 0.3 });
+    text(b, x, 1104, { size: 26, weight: 500, color: C.white, align: 'center', rt: u - 2.55 - i * 0.3 });
   });
   const cp = E.outCubic(P(u, 3.9, 4.5));
   if (cp > 0) {
     ctx.save(); ctx.globalAlpha = cp; ctx.translate(0, (1 - cp) * 60);
-    ctx.fillStyle = 'rgba(251,244,236,0.07)'; ctx.strokeStyle = 'rgba(242,191,148,0.45)'; ctx.lineWidth = 2;
-    rrect(80, 1185, 920, 305, 30); ctx.fill(); ctx.stroke();
+    copyFrame(80, 1160, 920, 340, 400);
     ctx.restore();
-    text('DEFINITION', 124, 1245, { size: 24, weight: 900, ls: 8, color: C.peach, rt: u - 4.1 });
-    text('The highest rate at which your body can *take in*, *transport* and *use* oxygen during exercise.', 124, 1318,
-      { size: 48, weight: 700, color: C.cream, maxW: 800, lh: 1.2, rt: u - 4.25, gap: 0.075 });
+    text('DEFINITION', 124, 1222, { size: 24, weight: 900, ls: 7, color: C.deep, rt: u - 4.1 });
+    text('The highest rate at which your body can *take in*, *transport* and *use* oxygen during exercise.', 124, 1292,
+      { size: 44, weight: 700, color: C.deep, hl: C.deep, hlItalic: true, hlWeight: 900, maxW: 610, lh: 1.2, rt: u - 4.25, gap: 0.075 });
   }
-  grain(0.07);
-  ctx.drawImage(VIGNETTE_SOFT, 0, 0);
+  grain(0.035);
 }
 
 /* ===================================================== SCENE 4: PATH */
@@ -822,45 +839,42 @@ const pathAt = s => { const f = clamp(s) * 200, i = Math.min(199, Math.floor(f))
 function beatPulse(tt) { const m = ((tt % 0.5) + 0.5) % 0.5; return Math.exp(-Math.pow(m / 0.06, 2)) + 0.6 * Math.exp(-Math.pow((m - 0.18) / 0.05, 2)); }
 function scenePath(u) {
   const t = T.path + u;
-  bgCream(t);
+  bgWhite(t, 1, { x: 900, y: 1560, size: 1150 });
   hud(2, true);
-  // title swap
   const sw = E.inOutCubic(P(u, 5.3, 5.9));
   ctx.save(); ctx.beginPath(); ctx.rect(0, 270, W, 170); ctx.clip();
   ctx.save(); ctx.translate(0, -sw * 170);
-  text('FROM AIR TO MUSCLE', 80, 322, { size: 26, weight: 900, ls: 7, color: C.teal, rt: u - 0.05 });
-  text('The oxygen journey', 80, 410, { size: 80, weight: 800, color: C.plum, rt: u - 0.15, gap: 0.08 });
+  text('FROM AIR TO MUSCLE', 80, 322, { size: 26, weight: 900, ls: 7, color: C.deep, rt: u - 0.05 });
+  text('The oxygen *journey*', 80, 410, { size: 80, weight: 800, color: C.deep, hl: C.bp, hlItalic: true, rt: u - 0.15, gap: 0.08 });
   ctx.translate(0, 170);
-  text('THE FICK PRINCIPLE', 80, 322, { size: 26, weight: 900, ls: 7, color: C.teal });
-  text('One simple equation', 80, 410, { size: 80, weight: 800, color: C.plum });
+  text('THE FICK PRINCIPLE', 80, 322, { size: 26, weight: 900, ls: 7, color: C.deep });
+  text('One simple *equation*', 80, 410, { size: 80, weight: 800, color: C.deep, hl: C.bp, hlItalic: true });
   ctx.restore(); ctx.restore();
-  // Phase A: journey
   const aA = 1 - E.inCubic(P(u, 5.2, 5.75));
   if (aA > 0) {
     ctx.save(); ctx.globalAlpha = aA; ctx.translate(0, -(1 - aA) * 100);
     const vp = E.inOutSine(P(u, 0.2, 3.6));
     ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.strokeStyle = C.tealLight; ctx.globalAlpha = 0.25 * aA; ctx.lineWidth = 30;
+    ctx.strokeStyle = C.light; ctx.lineWidth = 34;
     ctx.beginPath(); PATH_PTS.slice(0, Math.max(2, Math.floor(vp * 200))).forEach((p, i) => (i ? ctx.lineTo(...p) : ctx.moveTo(...p))); ctx.stroke();
-    ctx.globalAlpha = 0.6 * aA; ctx.lineWidth = 3; ctx.setLineDash([4, 14]); ctx.lineDashOffset = -u * 40; ctx.strokeStyle = C.teal; ctx.stroke();
+    ctx.lineWidth = 3; ctx.setLineDash([4, 14]); ctx.lineDashOffset = -u * 40; ctx.strokeStyle = C.deep60; ctx.stroke();
     ctx.restore();
     const ls = E.outBack(P(u, 0.35, 0.9)), hs = E.outBack(P(u, 1.65, 2.2)), ms = E.outBack(P(u, 2.95, 3.5));
     if (ls > 0) { ctx.save(); ctx.translate(300, 590); ctx.scale(ls, ls); lungs(0, 0, 300, Math.sin(u * Math.PI)); ctx.restore(); }
     if (hs > 0) { ctx.save(); ctx.translate(300, 920); ctx.scale(hs, hs); heart(0, 0, 260, beatPulse(u)); ctx.restore(); }
     if (ms > 0) { ctx.save(); ctx.translate(300, 1235); ctx.scale(ms, ms); muscle(0, 0, 330, u); ctx.restore(); }
-    // O2 particles
     if (u > 0.8) {
+      const k = (u - 0.8) * 0.24;
       for (let i = 0; i < 22; i++) {
-        const s = ((u - 0.8) * 0.24 + i / 22) % 1;
-        const k = (u - 0.8) * 0.24;
+        const s = (k + i / 22) % 1;
         if (!(s <= k || k + i / 22 >= 1) || s > vp) continue;
         const [px, py] = pathAt(s);
         const off = Math.sin(i * 7.3 + u * 3) * 22;
         const fade = s > 0.9 ? 1 - (s - 0.9) / 0.1 : s < 0.04 ? s / 0.04 : 1;
         const r = 7 + (i % 3) * 2.5;
-        blob(px + off, py, r * 3, C.peach, 0.4 * fade);
-        ctx.fillStyle = s < 0.5 ? C.peachDeep : '#D2553F'; ctx.globalAlpha = aA * fade; circle(px + off, py, r); ctx.fill(); ctx.globalAlpha = aA;
-        if (i % 7 === 3) text('O_{2}', px + off + r + 6, py + 9, { size: 26, weight: 800, color: C.plum, alpha: fade });
+        blob(px + off, py, r * 3, C.bp, 0.5 * fade);
+        ctx.fillStyle = C.bp; ctx.globalAlpha = aA * fade; circle(px + off, py, r); ctx.fill(); ctx.globalAlpha = aA;
+        if (i % 7 === 3) text('O_{2}', px + off + r + 6, py + 9, { size: 26, weight: 800, color: C.deep, alpha: fade });
       }
     }
     const steps = [
@@ -871,25 +885,24 @@ function scenePath(u) {
     steps.forEach(([y, tag, desc], i) => {
       const st = 0.6 + i * 1.3, p = E.outBack(P(u, st, st + 0.45));
       if (p <= 0) return;
-      ctx.fillStyle = C.teal; circle(545, y - 10, 27 * p); ctx.fill();
-      text(String(i + 1), 545, y + 1, { size: 30, weight: 900, color: C.cream, align: 'center', alpha: clamp(p) });
-      text(tag, 590, y + 1, { size: 30, weight: 900, ls: 5, color: C.teal, rt: u - st - 0.1 });
-      text(desc, 520, y + 66, { size: 38, weight: 700, color: C.plum, maxW: 420, lh: 1.18, rt: u - st - 0.2, gap: 0.05 });
+      ctx.save(); ctx.translate(545, y - 10); ctx.scale(p, p); keyTile(0, 0, 54, C.bg); ctx.restore();
+      text(String(i + 1), 545, y + 1, { size: 30, weight: 900, color: C.deep, align: 'center', alpha: clamp(p) });
+      text(tag, 590, y + 1, { size: 30, weight: 900, ls: 5, color: C.deep, rt: u - st - 0.1 });
+      text(desc, 520, y + 66, { size: 38, weight: 700, color: C.deep, maxW: 420, lh: 1.18, rt: u - st - 0.2, gap: 0.05 });
     });
     ctx.restore();
   }
-  // Phase B: Fick equation
   if (u > 5.5) {
-    text('V̇O_{2}max =', 540, 690, { size: 120, weight: 900, color: C.plum, align: 'center', rt: u - 5.65, gap: 0.12, dur: 0.6 });
+    text('V̇O_{2}max =', 540, 690, { size: 120, weight: 900, color: C.deep, align: 'center', rt: u - 5.65, gap: 0.12, dur: 0.6 });
     const chips = [
-      { t: 'HR', lab: 'heart rate', bg: C.teal, fg: C.cream },
-      { t: 'SV', lab: 'stroke volume', bg: C.teal, fg: C.cream },
-      { t: 'a–v̄O_{2} diff', lab: 'O_{2} extracted by muscle', bg: C.peach, fg: C.plum },
+      { t: 'HR', lab: 'heart rate', bg: C.deep, fg: C.bg },
+      { t: 'SV', lab: 'stroke volume', bg: C.deep, fg: C.bg },
+      { t: 'a–v̄O_{2} diff', lab: 'O_{2} extracted by muscle', bg: C.bp, fg: C.deep },
     ];
     const cs = { size: 62, weight: 800 };
-    const widths = chips.map(c => textW(c.t, cs) + 70);
-    const xw = 70, total = widths.reduce((a, b) => a + b, 0) + xw * 2;
-    let x = 540 - total / 2; const cy = 860, chh = 130;
+    const widths = chips.map(c => textW(c.t, cs) + 80);
+    const xw = 64, total = widths.reduce((a, b) => a + b, 0) + xw * 2;
+    let x = 540 - total / 2; const cy = 860, chh = 124;
     const xs = [];
     chips.forEach((c, i) => {
       const st = 6.05 + i * 0.3, p = P(u, st, st + 0.5);
@@ -897,44 +910,48 @@ function scenePath(u) {
       if (p > 0) {
         const e = E.outBack(p);
         ctx.save(); ctx.translate(x + widths[i] / 2, cy); ctx.scale(e, e);
-        ctx.fillStyle = c.bg; rrect(-widths[i] / 2, -chh / 2, widths[i], chh, 30); ctx.fill();
+        ctx.fillStyle = c.bg; rrect(-widths[i] / 2, -chh / 2, widths[i], chh, chh / 2); ctx.fill();
         ctx.restore();
         withAlpha(clamp(p * 2), () => text(c.t, x + widths[i] / 2, cy + 22, { ...cs, color: c.fg, align: 'center' }));
-        text(c.lab, x + widths[i] / 2, cy + chh / 2 + 44, { size: 27, weight: 600, color: C.plum, alpha: 0.85, align: 'center', rt: u - st - 0.25 });
-        if (i < 2) text('×', x + widths[i] + xw / 2, cy + 22, { size: 64, weight: 700, color: C.plum, align: 'center', alpha: clamp(p * 2) });
+        text(c.lab, x + widths[i] / 2, cy + chh / 2 + 44, { size: 27, weight: 600, color: C.deep, align: 'center', rt: u - st - 0.25 });
+        if (i < 2) text('×', x + widths[i] + xw / 2, cy + 22, { size: 64, weight: 700, color: C.deep, align: 'center', alpha: clamp(p * 2) });
       }
       x += widths[i] + xw;
     });
     const bp = E.outCubic(P(u, 7.1, 7.6));
     if (bp > 0) {
       const x0 = xs[0][0] + 10, x1 = xs[1][0] + xs[1][1] - 10, yb = 990;
-      ctx.save(); ctx.strokeStyle = C.teal; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+      ctx.save(); ctx.strokeStyle = C.deep; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       const xm = (x0 + x1) / 2, hw = (x1 - x0) / 2 * bp;
       ctx.beginPath(); ctx.moveTo(xm - hw, yb - 12); ctx.lineTo(xm - hw, yb); ctx.lineTo(xm + hw, yb); ctx.lineTo(xm + hw, yb - 12);
       ctx.moveTo(xm, yb); ctx.lineTo(xm, yb + 14 * bp); ctx.stroke(); ctx.restore();
-      text('= cardiac output (O_{2} delivery)', xm, yb + 58, { size: 30, weight: 800, color: C.teal, align: 'center', rt: u - 7.3 });
+      text('= cardiac output (O_{2} delivery)', xm, yb + 58, { size: 30, weight: 800, color: C.deep, align: 'center', rt: u - 7.3 });
     }
     const np = E.outCubic(P(u, 7.7, 8.2));
     if (np > 0) {
       ctx.save(); ctx.globalAlpha = np; ctx.translate(0, (1 - np) * 50);
-      ctx.fillStyle = C.plum; rrect(80, 1160, 920, 290, 30); ctx.fill();
+      ctx.fillStyle = C.deep; rrect(80, 1160, 920, 290, 12); ctx.fill(); ctx.clip();
+      motif(6, 960, 1440, 240, C.deep90);
       ctx.restore();
       text('In healthy people, *how much blood the heart can pump* is usually the main limit on V̇O_{2}max.', 124, 1238,
-        { size: 42, weight: 700, color: C.cream, maxW: 800, lh: 1.2, rt: u - 7.9, gap: 0.05 });
-      text('Bassett & Howley, 2000', 124, 1414, { size: 24, weight: 600, color: C.peach, alpha: 0.9, rt: u - 8.6 });
+        { size: 42, weight: 700, color: C.white, hl: C.bg, maxW: 780, lh: 1.2, rt: u - 7.9, gap: 0.05 });
+      text('Bassett & Howley, 2000', 124, 1414, { size: 24, weight: 700, color: C.bp, rt: u - 8.6 });
     }
   }
-  grain(0.05);
+  grain(0.03);
 }
 
 /* ==================================================== SCENE 5: UNITS */
+function whitePanel(x, y, w, h, p = 1) {
+  ctx.save(); ctx.globalAlpha *= p; ctx.translate(0, (1 - p) * 50); ctx.fillStyle = C.white; rrect(x, y, w, h, 12); ctx.fill(); ctx.restore();
+}
 function sceneUnits(u) {
   const t = T.units + u;
-  bgPlum(t);
+  bgDeep(t, 6, { x: 250, y: 1650, size: 1300 });
   hud(3, false);
-  text('THE NUMBERS', 80, 322, { size: 26, weight: 900, ls: 7, color: C.peach, rt: u - 0.05 });
-  text('How V̇O_{2}max is measured', 80, 410, { size: 70, weight: 800, color: C.cream, rt: u - 0.15, gap: 0.08 });
-  const pcs = [['mL', 'of oxygen', C.peach], ['·kg^{−1}', 'per kg body mass', C.cream], ['·min^{−1}', 'per minute', C.cream]];
+  text('THE NUMBERS', 80, 322, { size: 26, weight: 900, ls: 7, color: C.bp, rt: u - 0.05 });
+  text('How it’s *measured*', 80, 410, { size: 80, weight: 800, color: C.bg, hl: C.white, hlItalic: true, rt: u - 0.15, gap: 0.08 });
+  const pcs = [['mL', 'of oxygen', C.bg], ['·kg^{−1}', 'per kg body mass', C.white], ['·min^{−1}', 'per minute', C.white]];
   const o = { size: 104, weight: 800 };
   const ws = pcs.map(p => textW(p[0], o) + 12), tot = ws.reduce((a, b) => a + b, 0);
   let x = 540 - tot / 2;
@@ -945,42 +962,51 @@ function sceneUnits(u) {
       ctx.save(); ctx.translate(x + ws[i] / 2, 580); ctx.scale(e, e); ctx.translate(-(x + ws[i] / 2), -580);
       text(s, x, 610, { ...o, color: col, alpha: clamp(p * 2) });
       ctx.restore();
-      text(lab, x + ws[i] / 2 - 6, 672, { size: 26, weight: 600, color: C.cream, alpha: 0.75, align: 'center', rt: u - st - 0.2 });
+      text(lab, x + ws[i] / 2 - 6, 672, { size: 26, weight: 600, color: C.bp, align: 'center', rt: u - st - 0.2 });
     }
     x += ws[i];
   });
   text('Scaling to body mass means people of different sizes can be compared fairly.', 540, 770,
-    { size: 34, weight: 500, color: C.cream, alpha: 0.85, align: 'center', maxW: 860, rt: u - 1.7, gap: 0.04 });
-  const rows = [
-    ['Typical inactive adult', 35, '≈ 35', 'rgba(251,244,236,0.55)'],
-    ['Recreational runner', 50, '≈ 50', C.tealLight],
-    ['Elite endurance athlete', 80, '70–85+', C.peach],
-    ['Highest ever reported', 96, '≈ 96', '#FFE3C8'],
-  ];
-  const bx = 80, bw = 640;
-  // axis ticks
-  const ax = E.outCubic(P(u, 2.1, 2.6));
-  ctx.save(); ctx.globalAlpha = 0.25 * ax; ctx.strokeStyle = C.cream; ctx.lineWidth = 1.5; ctx.setLineDash([4, 8]);
-  for (let v = 20; v <= 100; v += 20) line(bx + v / 100 * bw, 880, bx + v / 100 * bw, 1440);
-  ctx.restore();
-  for (let v = 0; v <= 100; v += 20) text(String(v), bx + v / 100 * bw, 1475, { size: 22, weight: 600, color: C.cream, alpha: 0.55 * ax, align: 'center' });
-  rows.forEach(([lab, val, txt, col], i) => {
-    const y = 912 + i * 140, st = 2.3 + i * 0.55;
-    text(lab, bx, y, { size: 32, weight: 700, color: C.cream, rt: u - st });
-    const p = E.outCubic(P(u, st + 0.1, st + 1.0));
-    if (p > 0) {
-      const w = Math.max(24, val / 100 * bw * p);
-      if (i === 3) { ctx.save(); ctx.shadowColor = C.peach; ctx.shadowBlur = 30; }
-      ctx.fillStyle = col; rrect(bx, y + 22, w, 50, 25); ctx.fill();
-      if (i === 3) ctx.restore();
+    { size: 34, weight: 500, color: C.white, align: 'center', maxW: 860, rt: u - 1.7, gap: 0.04 });
+  // chart on a white panel (brand rule: charts always sit on white)
+  const pp = E.outCubic(P(u, 2.0, 2.5));
+  if (pp > 0) {
+    whitePanel(80, 860, 920, 640, pp);
+    ctx.save(); ctx.globalAlpha = pp; ctx.translate(0, (1 - pp) * 50);
+    text('Typical V̇O_{2}max values', 124, 925, { size: 32, weight: 800, color: C.deep });
+    text('mL·kg^{−1}·min^{−1}, approximate', 124, 962, { size: 22, weight: 400, color: C.grey });
+    const bx = 124, bw = 600;
+    ctx.strokeStyle = C.light; ctx.lineWidth = 1;
+    for (let v = 0; v <= 100; v += 20) line(bx + v / 100 * bw, 1000, bx + v / 100 * bw, 1395);
+    for (let v = 0; v <= 100; v += 20) text(String(v), bx + v / 100 * bw, 1428, { size: 20, weight: 600, color: C.grey, align: 'center' });
+    const rows = [
+      ['Typical inactive adult', 35, null, '≈ 35'],
+      ['Recreational runner', 50, null, '≈ 50'],
+      ['Elite endurance athlete', 70, 85, '70–85+'],
+      ['Highest ever reported', 96, null, '≈ 96'],
+    ];
+    rows.forEach(([lab, val, hi, txt], i) => {
+      const y = 1018 + i * 98, st = 2.4 + i * 0.5;
+      text(lab, bx, y + 8, { size: 27, weight: 700, color: C.deep, rt: u - st });
+      const p = E.outCubic(P(u, st + 0.1, st + 0.9));
+      if (p <= 0) return;
+      const w1 = val / 100 * bw * p;
+      ctx.fillStyle = C.deep; ctx.fillRect(bx, y + 22, Math.max(4, w1), 42);
+      let end = bx + w1;
+      if (hi) {
+        const p2 = E.outCubic(P(u, st + 0.8, st + 1.3));
+        const w2 = (hi - val) / 100 * bw * p2;
+        ctx.fillStyle = C.bp; ctx.fillRect(bx + w1, y + 22, w2, 42);
+        ctx.fillStyle = C.white; ctx.fillRect(bx + w1, y + 22, 2, 42); // thin white divider
+        end += w2;
+      }
       const shown = p < 1 ? String(Math.round(val * p)) : txt;
-      text(shown, bx + w + 18, y + 64, { size: 42, weight: 900, color: i >= 2 ? C.peach : C.cream });
-    }
-  });
-  text('Approximate values in mL·kg^{−1}·min^{−1}; they vary with age, sex, genetics and training.', 80, 1535,
-    { size: 23, weight: 500, color: C.cream, alpha: 0.65, maxW: 860, rt: u - 4.8, gap: 0.02 });
-  grain(0.07);
-  ctx.drawImage(VIGNETTE_SOFT, 0, 0);
+      text(shown, end + 16, y + 56, { size: 36, weight: 900, color: C.deep });
+    });
+    text('Values vary with age, sex, genetics and training.', 124, 1472, { size: 22, weight: 400, italic: true, color: C.grey, rt: u - 4.6, gap: 0.02 });
+    ctx.restore();
+  }
+  grain(0.035);
 }
 
 /* ===================================================== SCENE 6: TEST */
@@ -989,176 +1015,176 @@ const TEST_DATA = (() => {
   for (let i = 0; i < 150; i++) { const tau = i / 149; d.push([tau, smin(0.1 + 0.95 * tau, 0.8, 22) + (r() + r() + r() - 1.5) * 0.04]); }
   return d;
 })();
+// draw an image into (x,y,w,h), cropping around focus (fx,fy in 0..1) at zoom z (1 = cover)
+function photo(im, x, y, w, h, fx, fy, z) {
+  if (!im) { ctx.fillStyle = C.deep75; ctx.fillRect(x, y, w, h); return; }
+  const sc = Math.max(w / im.width, h / im.height) * z;
+  const sw = w / sc, sh = h / sc;
+  const sx = clamp(fx * im.width - sw / 2, 0, im.width - sw), sy = clamp(fy * im.height - sh / 2, 0, im.height - sh);
+  ctx.drawImage(im, sx, sy, sw, sh, x, y, w, h);
+}
 function sceneTest(u) {
   const t = T.test + u;
-  bgLab(t);
+  bgDeep(t, 5, { x: 860, y: 1650, size: 1250 });
   hud(4, false);
-  text('IN THE LAB TODAY', 80, 322, { size: 26, weight: 900, ls: 7, color: C.tealLight, rt: u - 0.05 });
-  text('The modern V̇O_{2}max test', 80, 410, { size: 70, weight: 800, color: C.cream, rt: u - 0.15, gap: 0.08 });
+  text('IN THE LAB TODAY', 80, 322, { size: 26, weight: 900, ls: 7, color: C.bp, rt: u - 0.05 });
+  text('The modern *test*', 80, 410, { size: 80, weight: 800, color: C.bg, hl: C.white, hlItalic: true, rt: u - 0.15, gap: 0.08 });
   const head = E.inOutSine(P(u, 0.6, 5.2));
   const stage = Math.min(10, Math.floor(head * 10) + 1), kmh = 7 + stage;
-  // treadmill
-  const tp = E.outCubic(P(u, 0.2, 0.8));
-  ctx.save(); ctx.globalAlpha = tp; ctx.translate(0, (1 - tp) * 40);
-  ctx.fillStyle = '#2B1C29'; rrect(190, 772, 430, 34, 17); ctx.fill();
-  ctx.save(); ctx.beginPath(); ctx.rect(205, 776, 400, 10); ctx.clip();
-  ctx.fillStyle = 'rgba(107,186,182,0.5)';
-  const sp = (u * (160 + stage * 25)) % 60;
-  for (let x = 205 - sp + 60; x < 610; x += 60) ctx.fillRect(x, 777, 26, 6);
-  ctx.restore();
-  ctx.strokeStyle = '#4A3348'; ctx.lineWidth = 14; ctx.lineCap = 'round';
-  line(600, 790, 575, 600); line(575, 610, 470, 640);
-  ctx.fillStyle = '#4A3348'; rrect(535, 568, 92, 44, 10); ctx.fill();
-  ctx.fillStyle = C.tealLight; ctx.globalAlpha = tp * (0.6 + 0.4 * Math.sin(u * 8));
-  rrect(548, 580, 66, 20, 5); ctx.fill();
-  ctx.restore();
-  // runner (cadence rises with stage)
-  const ph = 2 * Math.PI * (1.25 * u + 0.045 * u * u);
-  const r = drawRunner(390, 634, 0.62, ph, { skin: C.peach, far: '#C9906A', vest: C.plumMid, shorts: C.plumDeep, shoe: C.cream, mask: C.teal, hair: '#6E3C2B' });
-  // metabolic cart + hose
-  ctx.save(); ctx.globalAlpha = tp;
-  ctx.strokeStyle = C.teal; ctx.lineWidth = 10; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(r.mouth[0], r.mouth[1]); ctx.bezierCurveTo(r.mouth[0] + 90, r.mouth[1] + 200, 700, 740, 770, 690); ctx.stroke();
-  ctx.fillStyle = '#2A1628'; ctx.strokeStyle = 'rgba(107,186,182,0.6)'; ctx.lineWidth = 3;
-  rrect(770, 560, 170, 232, 18); ctx.fill(); ctx.stroke();
-  ctx.fillStyle = '#0D2B2D'; rrect(788, 580, 134, 78, 8); ctx.fill();
-  ctx.strokeStyle = C.tealLight; ctx.lineWidth = 3; ctx.beginPath();
-  for (let i = 0; i <= 60; i++) { const xx = 794 + i * 2.05, yy = 620 + Math.sin(i * 0.35 - u * 9) * 18 * (0.5 + 0.5 * Math.sin(i * 0.1)); i ? ctx.lineTo(xx, yy) : ctx.moveTo(xx, yy); }
-  ctx.stroke();
-  for (let i = 0; i < 3; i++) { ctx.fillStyle = [C.peach, C.tealLight, C.cream][i]; circle(810 + i * 36, 700, 9); ctx.fill(); }
-  ctx.restore();
-  text('gas analyser', 855, 830, { size: 22, weight: 600, color: C.cream, alpha: 0.6 * tp, align: 'center' });
-  text(`STAGE ${stage}`, 855, 490, { size: 24, weight: 900, ls: 4, color: C.tealLight, align: 'center', alpha: tp });
-  text(`${kmh} km/h`, 855, 540, { size: 44, weight: 900, color: C.cream, align: 'center', alpha: tp });
-  // live graph
+  // Asset Bank photograph, bevelled corners, slow push-in
+  const rp = E.outQuint(P(u, 0.15, 0.9));
+  if (rp > 0) {
+    const ph = 390, py = 450, hw = 460 * rp;
+    ctx.save(); rrect(540 - hw, py, hw * 2, ph, 12); ctx.clip();
+    photo(IMG.lab, 80, py, 920, ph, lerp(0.42, 0.45, u / 8.5), 0.36, lerp(1.0, 1.14, u / 8.5));
+    ctx.restore();
+    // live readout chip (Button style: Deep Purple pill, Bright Green label)
+    const cp = E.outBack(P(u, 0.7, 1.1));
+    if (cp > 0) {
+      const label = `STAGE ${stage}  ·  ${kmh} km/h`, lo = { size: 26, weight: 800, ls: 2 };
+      const cw = textW(label, lo) + 76;
+      ctx.save(); ctx.translate(104, 474); ctx.scale(cp, cp);
+      ctx.fillStyle = C.deep; rrect(0, 0, cw, 54, 27); ctx.fill();
+      ctx.fillStyle = C.bg; ctx.globalAlpha = 0.55 + 0.45 * Math.sin(u * 8); circle(28, 27, 8); ctx.fill(); ctx.globalAlpha = 1;
+      text(label, 50, 36, { ...lo, color: C.bg });
+      ctx.restore();
+    }
+  }
+  // live graph on a white panel
   const gpA = E.outCubic(P(u, 0.4, 0.9));
-  const L = 150, R = 950, B = 1250, Tp = 905;
+  const L = 150, R = 955, B = 1228, Tp = 935;
   const X = tau => lerp(L, R, tau), Y = v => lerp(B, Tp, v / 0.95);
-  ctx.save(); ctx.globalAlpha = gpA;
-  ctx.fillStyle = 'rgba(255,255,255,0.035)'; ctx.strokeStyle = 'rgba(107,186,182,0.35)'; ctx.lineWidth = 2;
-  rrect(80, 855, 920, 450, 26); ctx.fill(); ctx.stroke();
-  ctx.strokeStyle = 'rgba(251,244,236,0.5)'; ctx.lineWidth = 3; line(L, B, R, B); line(L, B, L, Tp - 10);
-  ctx.strokeStyle = 'rgba(251,244,236,0.08)'; ctx.lineWidth = 1;
-  for (let k = 1; k < 10; k++) line(X(k / 10), Tp, X(k / 10), B);
-  ctx.restore();
-  text('V̇O_{2}', L - 16, Tp + 12, { size: 30, weight: 800, color: C.cream, align: 'right', alpha: gpA });
-  text('time  →  workload increases every stage', R, B + 38, { size: 22, weight: 600, color: C.cream, alpha: 0.6 * gpA, align: 'right' });
-  // plateau band
+  if (gpA > 0) {
+    whitePanel(80, 865, 920, 420, gpA);
+    ctx.save(); ctx.globalAlpha = gpA;
+    ctx.strokeStyle = C.light; ctx.lineWidth = 1;
+    for (let k = 1; k < 10; k++) line(X(k / 10), Tp, X(k / 10), B);
+    ctx.strokeStyle = C.deep; ctx.lineWidth = 2; line(L, B, R, B); line(L, B, L, Tp - 10);
+    ctx.restore();
+    text('V̇O_{2}', L - 14, Tp + 10, { size: 28, weight: 800, color: C.deep, align: 'right', alpha: gpA });
+    text('time  →  workload rises every stage', R, B + 38, { size: 21, weight: 600, color: C.grey, align: 'right', alpha: gpA });
+  }
   const pb = E.outCubic(P(u, 5.0, 5.5));
   if (pb > 0) {
-    ctx.save(); ctx.fillStyle = 'rgba(242,191,148,0.14)'; ctx.strokeStyle = C.peach; ctx.setLineDash([10, 8]); ctx.lineWidth = 2;
     const x0 = X(0.72), yy = Y(0.8);
-    rrect(x0, yy - 45, (R - x0) * pb, 90, 14); ctx.fill(); ctx.stroke(); ctx.restore();
-    text('PLATEAU = V̇O_{2}max', R - 10, yy - 62, { size: 26, weight: 900, ls: 3, color: C.peach, align: 'right', rt: u - 5.2 });
+    ctx.fillStyle = C.bg60; ctx.fillRect(x0, yy - 42, (R - x0) * pb, 84);
+    text('PLATEAU = V̇O_{2}max', R - 6, yy - 56, { size: 24, weight: 900, ls: 2, color: C.deep, align: 'right', rt: u - 5.2 });
   }
-  // breath-by-breath dots + rolling mean
   if (head > 0) {
     ctx.save();
-    ctx.fillStyle = C.tealLight;
-    for (const [tau, v] of TEST_DATA) { if (tau > head) break; ctx.globalAlpha = 0.75; circle(X(tau), Y(v), 4.5); ctx.fill(); }
-    ctx.globalAlpha = 1; ctx.strokeStyle = C.peach; ctx.lineWidth = 5; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    ctx.fillStyle = C.bp;
+    for (const [tau, v] of TEST_DATA) { if (tau > head) break; circle(X(tau), Y(v), 4.5); ctx.fill(); }
+    ctx.strokeStyle = C.deep; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
     ctx.beginPath(); let first = true, last = null;
     for (let tau = 0; tau <= head; tau += 0.005) { const p = [X(tau), Y(smin(0.1 + 0.95 * tau, 0.8, 22))]; first ? ctx.moveTo(...p) : ctx.lineTo(...p); first = false; last = p; }
     ctx.stroke();
-    if (last && head < 1) { blob(last[0], last[1], 40, C.peach, 0.7); ctx.fillStyle = C.cream; circle(last[0], last[1], 8); ctx.fill(); }
+    if (last && head < 1) { ctx.fillStyle = C.bg; circle(last[0], last[1], 11); ctx.fill(); ctx.lineWidth = 3; ctx.stroke(); }
     ctx.restore();
   }
-  // criteria
-  text('COMMON CHECKS FOR A TRUE MAXIMUM', 80, 1362, { size: 22, weight: 900, ls: 4, color: C.tealLight, rt: u - 5.3 });
+  text('COMMON CHECKS FOR A TRUE MAXIMUM', 80, 1338, { size: 22, weight: 900, ls: 4, color: C.bp, rt: u - 5.3 });
   const crit = [['V̇O_{2} plateaus', true], ['RER ≥ 1.10', true], ['HR near predicted max', true], ['No plateau? → V̇O_{2}peak', false]];
   crit.forEach(([s, ok], i) => {
     const st = 5.5 + i * 0.45, p = P(u, st, st + 0.45);
     if (p <= 0) return;
-    const e = E.outBack(p), cx = i % 2 ? 525 : 80, cyy = 1386 + Math.floor(i / 2) * 82, w = 425;
+    const e = E.outBack(p), cx = i % 2 ? 525 : 80, cyy = 1360 + Math.floor(i / 2) * 80, w = 425;
     ctx.save(); ctx.translate(cx + w / 2, cyy + 33); ctx.scale(e, e); ctx.translate(-(cx + w / 2), -(cyy + 33));
-    ctx.fillStyle = ok ? 'rgba(107,186,182,0.16)' : 'rgba(242,191,148,0.12)';
-    ctx.strokeStyle = ok ? 'rgba(107,186,182,0.55)' : C.peach; ctx.lineWidth = 2;
+    ctx.strokeStyle = ok ? C.white : C.bp; ctx.lineWidth = ok ? 1.5 : 2;
     if (!ok) ctx.setLineDash([8, 6]);
-    rrect(cx, cyy, w, 66, 33); ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
-    ctx.fillStyle = ok ? C.tealLight : C.peach; circle(cx + 34, cyy + 33, 20); ctx.fill();
+    rrect(cx, cyy, w, 66, 33); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = ok ? C.bg : C.bp; circle(cx + 34, cyy + 33, 21); ctx.fill();
     ctx.restore();
-    if (ok) { ctx.strokeStyle = C.lab; drawGlyph('✓', cx + 34 - 12, cyy + 33 + 11, 34, 700); }
-    else text('i', cx + 34, cyy + 44, { size: 30, weight: 900, color: C.lab, align: 'center' });
-    text(s, cx + 66, cyy + 43, { size: 27, weight: 700, color: C.cream, alpha: clamp(p * 2) });
+    if (ok) { ctx.strokeStyle = C.deep; drawGlyph('✓', cx + 34 - 12, cyy + 33 + 11, 34, 700); }
+    else text('i', cx + 34, cyy + 44, { size: 30, weight: 900, color: C.deep, align: 'center' });
+    text(s, cx + 66, cyy + 43, { size: 27, weight: 700, color: C.white, alpha: clamp(p * 2) });
   });
-  grain(0.06);
-  ctx.drawImage(VIGNETTE_SOFT, 0, 0);
+  grain(0.035);
 }
 
 /* ====================================================== SCENE 7: WHY */
-function card(u, st, y, h, bg) {
-  const p = E.outQuint(P(u, st, st + 0.7));
-  if (p <= 0) return false;
-  ctx.save(); ctx.translate((1 - p) * 700, 0);
-  ctx.fillStyle = bg; ctx.shadowColor = 'rgba(62,19,57,0.25)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 12;
-  rrect(80, y, 920, h, 34); ctx.fill(); ctx.restore();
-  return (1 - p) * 700;
-}
+function slideIn(u, st) { const p = E.outQuint(P(u, st, st + 0.7)); return p <= 0 ? null : (1 - p) * 700; }
 function sceneWhy(u) {
   const t = T.why + u;
-  bgCream(t);
+  bgWhite(t, 7, { x: 230, y: 1620, size: 1050 });
   hud(5, true);
-  text('WHY IT MATTERS', 80, 322, { size: 26, weight: 900, ls: 7, color: C.teal, rt: u - 0.05 });
-  text('More than a number', 80, 410, { size: 80, weight: 800, color: C.plum, rt: u - 0.15, gap: 0.08 });
-  let dx = card(u, 0.3, 465, 285, C.plum);
-  if (dx !== false) {
+  text('WHY IT MATTERS', 80, 322, { size: 26, weight: 900, ls: 7, color: C.deep, rt: u - 0.05 });
+  text('More than a *number*', 80, 410, { size: 80, weight: 800, color: C.deep, hl: C.bp, hlItalic: true, rt: u - 0.15, gap: 0.08 });
+  let dx = slideIn(u, 0.3);
+  if (dx !== null) { // CopyFrame
     ctx.save(); ctx.translate(dx, 0);
-    iconStopwatch(160, 548, 36, C.peach, u);
-    text('Performance', 222, 568, { size: 48, weight: 800, color: C.peach });
+    copyFrame(80, 465, 920, 285, 230);
+    iconStopwatch(160, 548, 34, C.deep, u);
+    text('Performance', 222, 568, { size: 48, weight: 800, color: C.deep });
     text('A key determinant of endurance performance, alongside lactate threshold and running economy.', 124, 648,
-      { size: 33, weight: 500, color: C.cream, maxW: 800, lh: 1.25, rt: u - 0.7, gap: 0.035 });
+      { size: 33, weight: 600, color: C.deep, maxW: 700, lh: 1.25, rt: u - 0.7, gap: 0.035 });
     ctx.restore();
   }
-  dx = card(u, 1.3, 780, 330, C.teal);
-  if (dx !== false) {
+  dx = slideIn(u, 1.3);
+  if (dx !== null) { // KeyStatistic, tile variant
     ctx.save(); ctx.translate(dx, 0);
-    text('HEALTH', 124, 842, { size: 26, weight: 900, ls: 7, color: C.peach });
+    ctx.fillStyle = C.deep; rrect(80, 780, 920, 330, 12); ctx.fill();
+    text('HEALTH', 124, 842, { size: 24, weight: 900, ls: 7, color: C.white });
     const n = Math.round(13 * E.outCubic(P(u, 1.7, 2.6)));
-    text(`${n}%`, 118, 1000, { size: 150, weight: 900, color: C.cream });
+    text(`${n}%`, 118, 1000, { size: 150, weight: 900, color: C.bg });
     text('lower risk of death from any cause for each 1-MET higher fitness level', 470, 900,
-      { size: 32, weight: 700, color: C.cream, maxW: 440, lh: 1.22, rt: u - 1.9, gap: 0.04 });
-    text('1 MET = 3.5 mL·kg^{−1}·min^{−1}  ·  Kodama et al., JAMA 2009', 124, 1076, { size: 23, weight: 600, color: C.cream, alpha: 0.8, rt: u - 2.6, gap: 0.03 });
+      { size: 32, weight: 700, color: C.white, maxW: 440, lh: 1.22, rt: u - 1.9, gap: 0.04 });
+    text('1 MET = 3.5 mL·kg^{−1}·min^{−1}  ·  Kodama et al., JAMA 2009', 124, 1076, { size: 23, weight: 600, color: C.bp, rt: u - 2.6, gap: 0.03 });
     ctx.restore();
   }
-  dx = card(u, 2.5, 1140, 300, C.peach);
-  if (dx !== false) {
+  dx = slideIn(u, 2.5);
+  if (dx !== null) {
     ctx.save(); ctx.translate(dx, 0);
-    iconArrowUp(160, 1222, 38, C.plum, C.peach);
-    text('Trainable', 222, 1240, { size: 48, weight: 800, color: C.plum });
+    ctx.fillStyle = C.bg; rrect(80, 1140, 920, 300, 12); ctx.fill();
+    keyTile(160, 1222, 72, C.deep); iconArrowUp(160, 1222, 36, C.bg);
+    text('Trainable', 222, 1240, { size: 48, weight: 800, color: C.deep });
     text('Endurance training raises V̇O_{2}max, but how much varies a lot between people (genetics play a part).', 124, 1320,
-      { size: 33, weight: 600, color: C.plum, maxW: 800, lh: 1.25, rt: u - 2.9, gap: 0.035 });
+      { size: 33, weight: 600, color: C.deep, maxW: 800, lh: 1.25, rt: u - 2.9, gap: 0.035 });
     ctx.restore();
   }
-  grain(0.05);
+  grain(0.03);
 }
 
 /* ==================================================== SCENE 8: OUTRO */
+// PhotoFrame: photograph clipped to the quatrefoil with an offset Bright Green shadow (3.4% down-left)
+function photoFrame(im, cx, cy, size, sp, zoom) {
+  const off = size * 0.034 * sp;
+  motif(0, cx - off, cy + off, size, C.bg);
+  ctx.save(); ctx.translate(cx - size / 2, cy - size / 2); ctx.scale(size / MQ, size / MQ); ctx.clip(MOTIF[0]);
+  ctx.scale(MQ / size, MQ / size); ctx.translate(-(cx - size / 2), -(cy - size / 2));
+  photo(im, cx - size / 2, cy - size / 2, size, size, 0.5, 0.5, zoom);
+  ctx.restore();
+}
 function sceneOutro(u) {
   const t = T.outro + u;
-  bgPlum(t);
-  blob(540, 760, 520, C.peach, 0.18 * E.outCubic(P(u, 0, 1)));
-  vo2Title(540, 740, 170, u, 0.05, 0.4, C.peach, C.peach, C.peach);
-  text('= your aerobic ceiling.', 540, 860, { size: 66, weight: 800, color: C.cream, align: 'center', rt: u - 0.55, gap: 0.09 });
-  const lp = E.inOutCubic(P(u, 1.0, 2.1));
-  const x0 = 170, x1 = 910, y = 1010;
-  ctx.save(); ctx.strokeStyle = 'rgba(251,244,236,0.35)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+  bgDeep(t, 2, { x: 540, y: 760, size: 1700, drift: 0.6 });
+  text('SPORT & EXERCISE SCIENCE', 540, 300, { size: 26, weight: 900, ls: 7, color: C.bp, align: 'center', rt: u - 0.2, gap: 0.08 });
+  const fp = E.outBack(P(u, 0.1, 0.8));
+  if (fp > 0) {
+    ctx.save(); ctx.translate(540, 620); ctx.scale(fp, fp); ctx.translate(-540, -620);
+    photoFrame(IMG.mask, 540, 620, 470, E.outCubic(P(u, 0.5, 1.1)), 1.04 + u * 0.012);
+    ctx.restore();
+  }
+  text('V̇O_{2}max', 540, 1000, { size: 116, weight: 800, color: C.bg, align: 'center', rt: u - 0.6, gap: 0.1 });
+  text('your aerobic *ceiling*', 540, 1076, { size: 54, weight: 600, color: C.white, hl: C.white, hlItalic: true, hlWeight: 800, align: 'center', rt: u - 0.9, gap: 0.09 });
+  const lp = E.inOutCubic(P(u, 1.2, 2.3));
+  const x0 = 170, x1 = 910, y = 1150;
+  ctx.save(); ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
   if (lp > 0) line(x0, y, lerp(x0, x1, lp), y);
-  ctx.fillStyle = C.peach;
-  if (u > 0.9) { circle(x0, y, 12 * E.outBack(P(u, 0.9, 1.2))); ctx.fill(); }
-  if (lp > 0.98) { circle(x1, y, 12 * E.outBack(P(u, 2.05, 2.35))); ctx.fill(); }
-  if (lp > 0 && lp < 1) { blob(lerp(x0, x1, lp), y, 50, C.peach, 0.8); }
+  ctx.fillStyle = C.bg;
+  if (u > 1.1) { circle(x0, y, 10 * E.outBack(P(u, 1.1, 1.4))); ctx.fill(); }
+  if (lp > 0.98) { circle(x1, y, 10 * E.outBack(P(u, 2.25, 2.55))); ctx.fill(); }
+  if (lp > 0 && lp < 1) triangle(lerp(x0, x1, lp), y, 22, C.bg);
   ctx.restore();
-  text('1923', x0, y + 58, { size: 34, weight: 900, color: C.peach, align: 'center', rt: u - 1.0 });
-  text('Hill & Lupton', x0, y + 94, { size: 24, weight: 600, color: C.cream, alpha: 0.75, align: 'center', rt: u - 1.1 });
-  text('TODAY', x1, y + 58, { size: 34, weight: 900, color: C.peach, align: 'right', ls: 2, rt: u - 2.1 });
-  text('sports labs worldwide', x1, y + 94, { size: 24, weight: 600, color: C.cream, alpha: 0.75, align: 'right', rt: u - 2.2 });
-  text('SPORT & EXERCISE SCIENCE', 540, 1215, { size: 26, weight: 900, ls: 7, color: C.peach, align: 'center', rt: u - 1.6, gap: 0.08 });
-  text('University of Winchester', 540, 1278, { size: 50, weight: 800, color: C.cream, align: 'center', rt: u - 1.8, gap: 0.1 });
-  text('Hill & Lupton (1923) Q J Med 16:135–171 · Bassett & Howley (2000) Med Sci Sports Exerc 32:70–84 · Kodama et al. (2009) JAMA 301:2024–2035',
-    540, 1390, { size: 20, weight: 500, color: C.cream, alpha: 0.55, align: 'center', maxW: 860, rt: u - 2.2, gap: 0.01 });
-  grain(0.07);
-  ctx.drawImage(VIGNETTE_SOFT, 0, 0);
-  if (u > 3.55) { ctx.fillStyle = `rgba(10,5,2,${E.inOutSine(P(u, 3.55, 4))})`; ctx.fillRect(0, 0, W, H); }
+  text('1923 · Hill & Lupton', x0 - 10, y + 44, { size: 24, weight: 700, color: C.white, rt: u - 1.2 });
+  text('Today · labs worldwide', x1 + 10, y + 44, { size: 24, weight: 700, color: C.white, align: 'right', rt: u - 2.3 });
+  // University logo (white on Deep Purple), clear space kept around it
+  const lg = E.outCubic(P(u, 2.4, 3.0));
+  if (lg > 0 && IMG.logo) {
+    const lw = 430, lh = lw * IMG.logo.height / IMG.logo.width;
+    ctx.save(); ctx.globalAlpha = lg; ctx.drawImage(IMG.logo, 540 - lw / 2, 1300 + (1 - lg) * 20, lw, lh); ctx.restore();
+  }
+  motifStrip(540, 1560, 44, C.bg, P(u, 2.7, 3.7));
+  grain(0.03);
+  if (u > 4.5) { ctx.fillStyle = `rgba(0,0,0,${E.inOutSine(P(u, 4.5, 5))})`; ctx.fillRect(0, 0, W, H); }
 }
 
 /* ======================================================= transitions */
@@ -1187,20 +1213,21 @@ function circleWipe(t, tb, dur, cx, cy, drawB, ring) {
 function render(t) {
   FRAME = Math.round(t * FPS);
   ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.filter = 'none';
   if (t < T.graph) sceneOpen(t - T.open);
   else if (t < T.name) sceneGraph(t - T.graph);
   else if (t < T.path) sceneName(t - T.name);
   else if (t < T.units - 0.35) scenePath(t - T.path);
-  else if (t < T.units + 0.35) { scenePath(t - T.path); circleWipe(t, T.units, 0.7, 540, 900, () => sceneUnits(t - T.units), C.peach); }
+  else if (t < T.units + 0.35) { scenePath(t - T.path); circleWipe(t, T.units, 0.7, 540, 900, () => sceneUnits(t - T.units), C.bg); }
   else if (t < T.test) sceneUnits(t - T.units);
   else if (t < T.why) sceneTest(t - T.test);
   else if (t < T.outro - 0.35) sceneWhy(t - T.why);
-  else if (t < T.outro + 0.35) { sceneWhy(t - T.why); circleWipe(t, T.outro, 0.7, 540, 760, () => sceneOutro(t - T.outro), C.peach); }
+  else if (t < T.outro + 0.35) { sceneWhy(t - T.why); circleWipe(t, T.outro, 0.7, 540, 620, () => sceneOutro(t - T.outro), C.bp); }
   else sceneOutro(t - T.outro);
-  swipeBands(t, T.path, [C.peach, C.plum]);
-  swipeBands(t, T.test, [C.peach, C.teal]);
-  swipeBands(t, T.why, [C.tealLight, C.peach]);
+  swipeBands(t, T.path, [C.bp, C.bg]);
+  swipeBands(t, T.test, [C.bg, C.bp]);
+  swipeBands(t, T.why, [C.bp, C.bg]);
   ctx.restore();
 }
 window.renderFrame = t => { render(clamp(t, 0, REEL.DURATION - 1e-6)); };

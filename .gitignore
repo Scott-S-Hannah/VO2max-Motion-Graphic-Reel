@@ -5,4 +5,5 @@ out/sheet*.png
 out/crop.png
 out/video_silent.mp4
 node_modules/
-out/vo2max_reel_preview.mp4
+out/assets_sheet*.png
+out/check_portrait.png

@@ -11,12 +11,12 @@ import numpy as np
 from scipy.signal import butter, sosfilt, fftconvolve
 
 SR = 44100
-DUR = 58.0
+DUR = 59.0
 N = int(SR * DUR)
 rng = np.random.default_rng(1923)
 
 # Scene start times (keep in sync with T in reel/reel.js)
-T = dict(open=0, graph=8, name=14.5, path=21, units=31, test=38.5, why=47, outro=54, end=58)
+T = dict(open=0, graph=8, name=14.5, path=21, units=31, test=38.5, why=47, outro=54, end=59)
 BEAT = 0.5  # 120 bpm
 
 

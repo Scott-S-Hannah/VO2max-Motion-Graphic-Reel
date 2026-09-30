@@ -1,8 +1,8 @@
 # What is VO₂max? A motion graphic reel
 
-A 58-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It opens with A.V. Hill and the 1923 Douglas-bag experiments and ends in a modern sports-science lab. The reel uses the University of Winchester palette and the Figtree typeface.
+A 59-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It opens with A.V. Hill and the 1923 Douglas-bag experiments and ends in a modern sports-science lab at Winchester. It is built on the **University of Winchester design system** in Claude Design: tokens, bespoke motifs, logo and Asset Bank photography, with Figtree throughout.
 
-**Output:** `out/vo2max_reel.mp4` (H.264 + AAC, faststart), with a cover frame at `out/cover.png`.
+**Output:** `out/vo2max_reel.mp4` (H.264 + AAC, faststart; `out/vo2max_reel_preview.mp4` is a smaller copy for messaging), with a cover frame at `out/cover.png`.
 
 ## Storyboard
 
@@ -11,12 +11,12 @@ A 58-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It
 | 0–3.8 s | **The origin story** | Sepia newsreel: grain, gate weave, scratches, sprockets | A.V. Hill (1886–1977), Nobel Prize 1922; a “1923 · Hill & Lupton” stamp |
 | 3.8–8 s | **Measuring every breath** | Archival illustration | A runner with a Douglas bag, mouthpiece and nose clip; expired air is analysed for O₂ and CO₂ |
 | 8–14.5 s | **What the bags revealed** | Hand-inked graph on graph paper | O₂ uptake rises with speed and then plateaus. Hill measured ≈ 4 L·min⁻¹ for himself, and the authors named it the “maximum oxygen intake”. A film burn then cuts to colour |
-| 14.5–21 s | **01 The name** | Plum, kinetic type | V̇ = volume per minute, O₂ = oxygen, max = maximum, followed by the definition |
-| 21–31 s | **02 The oxygen journey** | Cream, iconography | Lungs → heart → muscle mitochondria, then the Fick principle: V̇O₂max = HR × SV × a–v̄O₂ diff. Cardiac output is usually the main limit |
-| 31–38.5 s | **03 The numbers** | Plum, bar chart | mL·kg⁻¹·min⁻¹; typical ranges from inactive adults up to the highest values reported |
-| 38.5–47 s | **04 The modern test** | Dark lab HUD | Incremental treadmill test with breath-by-breath V̇O₂. Covers the plateau, RER ≥ 1.10, HR near max, and when to call it V̇O₂peak instead |
-| 47–54 s | **05 Why it matters** | Cream cards | Performance; 13% lower all-cause mortality per 1-MET increase; trainability varies between people |
-| 54–58 s | **Outro** | Plum | “Your aerobic ceiling”, a 1923 → today timeline and references |
+| 14.5–21 s | **01 The name** | Deep Purple, kinetic type, CopyFrame | V̇ = volume per minute, O₂ = oxygen, max = maximum, followed by the definition |
+| 21–31 s | **02 The oxygen journey** | Light theme, Key-icon tiles, pill chips | Lungs → heart → muscle mitochondria, then the Fick principle: V̇O₂max = HR × SV × a–v̄O₂ diff. Cardiac output is usually the main limit |
+| 31–38.5 s | **03 The numbers** | Deep Purple; chart on a white panel | mL·kg⁻¹·min⁻¹; typical ranges from inactive adults up to the highest values reported |
+| 38.5–47 s | **04 The modern test** | Asset Bank photo of the Winchester lab; live chart | Incremental treadmill test with breath-by-breath V̇O₂. Covers the plateau, RER ≥ 1.10, HR near max, and when to call it V̇O₂peak instead |
+| 47–54 s | **05 Why it matters** | CopyFrame, KeyStatistic tile, Bright Green panel | Performance; 13% lower all-cause mortality per 1-MET increase; trainability varies between people |
+| 54–59 s | **Outro** | Deep Purple | Quatrefoil PhotoFrame, “your aerobic ceiling”, a 1923 → today timeline, the white banner logo and the MotifStrip |
 
 Every scene cut lands on a beat of the 120 bpm soundtrack. The archival piano plays the same Am–F–C–G progression that the modern track later picks up.
 
@@ -31,14 +31,25 @@ The value bars (≈35, ≈50, 70–85+, ≈96 mL·kg⁻¹·min⁻¹) are approxi
 
 ## Brand
 
-| Token | Hex | Use |
-|---|---|---|
-| Plum | `#702A69` | Primary colour and backgrounds |
-| Manhattan (peach) | `#F2BF94` | Accent and highlights |
-| Lochinvar (teal) | `#257478` | Secondary accent |
-| Cream | `#FBF4EC` | Light backgrounds |
+Source: the **University of Winchester** design system in Claude Design (built from *Corporate Brand Guidelines: the essentials*, V1, April 2026).
 
-Typeface: Figtree (SIL Open Font License), bundled in `reel/fonts/`. All colours live in the `C` object at the top of `reel/reel.js`, so you can swap them in one place.
+| Token | Hex | How the reel uses it |
+|---|---|---|
+| Deep Purple `deep-purple` | `#291647` | Dark-theme ground; text on the light theme |
+| Bright Purple `bright-purple` | `#C68EFD` | Labels and accents on Deep Purple; CopyFrame panels; large italic emphasis on white |
+| Bright Green `bright-green` | `#D4EF70` | Titles on Deep Purple, key figures, panels, the PhotoFrame shadow |
+| `deep-purple-90` / `light-grey` | `#3E2D5A` / `#E6EBEB` | Motif background patterns (tints only) |
+| Deep Grey | `#706E6C` | Chart captions on white |
+
+The reel follows these brand rules:
+
+- It uses only the approved text pairings, and never puts Bright Purple or Bright Green text on white.
+- Charts sit on white panels.
+- Motifs are single-colour and used as patterns, a CopyFrame, a quatrefoil PhotoFrame and a closing MotifStrip.
+- The white logo sits on Deep Purple with clear space and no strapline beside it.
+- Bullets and arrows are solid triangles, and there is no emoji.
+
+The motif paths, logo and photos (`reel/assets/`: Asset Bank images UoW_Sport_1218 and UoW_Sport_1232) come from that design system. The brand's headline face is Ivy Presto Display (Playfair Display as a stand-in). This reel uses **Figtree** throughout, as requested.
 
 ## Adding a real archival photo
 
@@ -55,6 +66,6 @@ NODE_PATH=$(npm root -g) FFMPEG=$(python3 -c "import imageio_ffmpeg;print(imagei
 node render.cjs stills 5 17 27                # single frames for review
 ```
 
-To preview in a browser in real time, open `reel/index.html?preview` (serve the folder, e.g. `npx serve reel`).
+To preview in a browser in real time, serve the folder (for example `npx serve reel`) and open `index.html?preview`. Photos need http rather than `file://`.
 
 The soundtrack is fully synthesised in code, so it contains no samples or licensed music.
