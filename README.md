@@ -2,7 +2,7 @@
 
 A 59-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It opens with A.V. Hill and the 1923 Douglas-bag experiments and ends in a modern sports-science lab at Winchester. It is built on the **University of Winchester design system** in Claude Design: tokens, bespoke motifs, logo and Asset Bank photography, with Figtree throughout.
 
-**Output:** `out/vo2max_reel.mp4` (H.264 + AAC, faststart; `out/vo2max_reel_preview.mp4` is a smaller copy for messaging), with a cover frame at `out/cover.png`.
+**Output (v5, current):** `out/vo2max_reel_v5.mp4`. It is 30 s, 1080×1920, 30 fps, H.264 at about 12 Mbps with faststart, AAC 256 kbps at −14 LUFS, and every frame is motion-blurred. The cover frame is `out/cover_v5.png`. The first draft, which is 59 s long, is kept at `out/vo2max_reel.mp4`, with `out/vo2max_reel_preview.mp4` and `out/cover.png`.
 
 ## Live motion master (`motion/`): the source of truth
 
