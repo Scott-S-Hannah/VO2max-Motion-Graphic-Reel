@@ -6,20 +6,24 @@ A 59-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It
 
 ## Live motion master (`motion/`): the source of truth
 
-`motion/index.html` is the reel as a live, scrubbable motion graphic built on GSAP and SVG. It uses shapes and words only, with no photos, motifs or history. It is cut to its own soundtrack, `motion/tools/soundtrack.py` (120 bpm), which was written first. The published version is at https://claude.ai/artifact/1bHyA2g5ZT3QWuynA4TSpY. Video is exported from this timeline once the motion is signed off.
+`motion/index.html` is v4, a showreel-grade version rendered live on the GPU with WebGL2. It uses no libraries. The published version is at https://claude.ai/artifact/1bHyA2g5ZT3QWuynA4TSpY.
 
-The reel runs 30 s and follows one idea: VO₂max is a ceiling. The Bright Green bar is the ceiling throughout.
+The concept is oxygen as light, and one idea runs throughout: VO₂max is a ceiling. The ceiling is a beam of lime light.
 
-| Time | Beat | On screen |
+- **Renderer:** a background shader draws a nebula, the ceiling beam and the heart orb (fbm veins with a Fresnel rim). Up to 6,000 instanced particles are drawn as motion-streaked light. Type is drawn to a canvas and uploaded as a texture. The frame then goes through a four-level HDR bloom and a composite pass: shockwave distortion, chromatic aberration, a highlight shoulder, desaturation for the time-stop, vignette and grain.
+- **Determinism:** every element is a pure function of time. `reel.seek(t)` renders any frame exactly, and `index.html#render` gives a bare 1080×1920 stage for export.
+- **Type:** Figtree's variable weight is animated live (300→900 on slams, pulsing on heartbeats).
+
+| Time | Beat | What happens |
 |---|---|---|
-| 0–4 s | **Hook** | A white line of oxygen shoots up and hits the ceiling. "Your body has a *ceiling.*" |
-| 4–10 s | **The curve** | The camera follows the dot up an effort/oxygen curve. "Push harder, use more oxygen… *until you can't.*" The music drops out. "That limit has a name:" |
-| 10–15 s | **The name** | V̇O₂max rises from behind the bar on the drop, then decodes as: volume per minute · of oxygen used by your body · at maximum effort. |
-| 15–21 s | **The heart** | The camera zooms through the O into a green field, where a heart pulses on the beat and pumps O₂ outward. "Your heart pumps oxygen to your muscles. How much it can pump *usually sets the limit.*" |
-| 21–26 s | **The test** | "Measured *breath by breath.*" Breath dots build the curve, and the ceiling slams onto the plateau, labelled V̇O₂max. |
-| 26–30 s | **The payoff** | "Find your ceiling." The oxygen line pushes the bar up. "*Then raise it.*" Logo, then the end fades back to the opening frame so the reel loops. |
+| 0–4 s | **Hook** | A photon of oxygen launches with a comet trail and hits a descending beam. Shockwave and sparks. "YOUR BODY HAS A *ceiling.*" |
+| 4–10 s | **The curve** | The camera rides a river of particles that widens as effort rises and presses flat under the beam. "*until you can't.*" Time stops (desaturation, the particles freeze). "THAT LIMIT HAS A NAME" |
+| 10–15 s | **The name** | On the drop, the frozen river explodes and re-forms as V̇O₂max, and the beam becomes its underline. It decodes as volume per minute, of oxygen, at maximum effort. |
+| 15–21 s | **The heart** | The camera dives through the O into a living orb that pumps light down six vessels, with a pressure wave on every beat. "How much it can pump *usually sets the limit.*" |
+| 21–26 s | **The test** | The heart implodes into a point of light. "MEASURED *breath by breath.*" Breaths land as pulses, the trend is drawn in light, and the beam slams onto the plateau as V̇O₂max. |
+| 26–30 s | **The payoff** | "FIND YOUR CEILING." The photon returns and pushes the beam up as oxygen erupts past it. "*Then raise it.*" Logo, then fade to black, which is also the opening frame, so it loops. |
 
-The page offers play with sound, scrubbing, frame stepping, beat markers and Instagram safe-zone guides. There is also a bare 1080×1920 render mode, `index.html#render`, and `window.reel.seek(t)` for frame-accurate export. The previous 55 s version is kept in `motion/archive/`.
+The soundtrack is `motion/tools/soundtrack.py` (120 bpm, written first; the picture is cut to its cues). Earlier versions are in `motion/archive/`: v2 (55 s, illustrated), and v3 (30 s, strict brand system).
 
 ## First-draft storyboard (`reel/`)
 

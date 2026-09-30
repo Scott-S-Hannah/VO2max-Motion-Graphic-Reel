@@ -1,0 +1,619 @@
+<title>What is VO2max? Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  /* Layout: an editing workspace. The 9:16 stage is the hero; transport and beat list sit beside it (stacked on phones).
+     One deliberate dark look so the stage colours read true. Stage colours are University of Winchester tokens. */
+  :root {
+    --ws-bg: #130b1f;
+    --ws-panel: #1d1330;
+    --ws-line: #3e2d5a;
+    --ws-fg: #f4f0fa;
+    --ws-muted: #b5aac9;
+    --uow-deep: #291647;
+    --uow-purple: #c68efd;
+    --uow-green: #d4ef70;
+    --font-ui: "Figtree", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--ws-bg); color: var(--ws-fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
+  .app {
+    display: grid; grid-template-columns: auto minmax(0, 380px); gap: 28px;
+    justify-content: center; align-items: start;
+    padding-inline: max(16px, 3vw); padding-block: 20px 28px;
+  }
+  .stage-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .stage {
+    position: relative; height: min(86vh, 1080px); aspect-ratio: 9 / 16; max-width: 100%;
+    background: var(--uow-deep); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--ws-line);
+  }
+  .stage svg, .stage canvas, .stage .vignette, .stage .safe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .stage canvas { mix-blend-mode: overlay; opacity: .09; pointer-events: none; }
+  .stage .vignette { pointer-events: none; opacity: .3; background: radial-gradient(ellipse 80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(0,0,0,.7) 100%); }
+  .safe { pointer-events: none; }
+  .safe div { position: absolute; left: 0; right: 0; border: 1.5px dashed rgba(198,142,253,.9); background: rgba(198,142,253,.12);
+    font: 600 11px/1.2 var(--font-mono); color: #fff; padding: 4px 6px; text-shadow: 0 1px 2px #000; }
+  .safe .top { top: 0; height: 11.5%; }
+  .safe .bottom { bottom: 0; height: 21%; }
+  .safe .side { left: auto; right: 0; width: 11%; top: 57%; height: 27%; }
+  .poster {
+    position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 9%; background: rgba(19,11,31,.25);
+    border: 0; cursor: pointer; color: var(--uow-deep); font: 800 15px var(--font-ui); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .poster span { display: inline-flex; align-items: center; gap: 10px; background: var(--uow-green); color: var(--uow-deep); padding: 14px 22px; border-radius: 999px; }
+  .poster:focus-visible { outline: 3px solid var(--uow-green); outline-offset: -6px; }
+
+  .transport { display: grid; gap: 10px; width: 100%; max-width: calc(min(86vh, 1080px) * 9 / 16); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 12px; border-radius: 999px;
+    background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); cursor: pointer; font: 700 13px var(--font-ui);
+  }
+  .btn.primary { background: var(--uow-green); color: var(--uow-deep); border-color: var(--uow-green); min-width: 48px; height: 48px; font-size: 16px; }
+  .btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--uow-green); outline-offset: 2px; }
+  .tc { font: 600 14px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ws-fg); }
+  .tc small { color: var(--ws-muted); font-weight: 500; }
+  .scrub { position: relative; height: 34px; }
+  .scrub .track { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--ws-line); overflow: hidden; }
+  .scrub .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--uow-green); width: 0; }
+  .scrub .tick { position: absolute; top: 8px; width: 2px; height: 18px; background: var(--uow-purple); border-radius: 1px; }
+  .scrub input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  label.tog { display: inline-flex; align-items: center; gap: 6px; color: var(--ws-muted); font-size: 13px; cursor: pointer; }
+  label.tog input { accent-color: var(--uow-green); }
+  select { background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); border-radius: 8px; height: 32px; font: 600 13px var(--font-ui); }
+
+  .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .side h1 { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 800; text-wrap: balance; }
+  .side h1 em { color: var(--uow-green); font-style: italic; }
+  .side p { margin: 0; color: var(--ws-muted); max-width: 60ch; }
+  .eyebrow { font: 800 11px var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--uow-purple); }
+  ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ol.shots li button {
+    width: 100%; text-align: left; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 2px 12px;
+    background: transparent; color: var(--ws-fg); border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer; font: inherit;
+  }
+  ol.shots li button:hover { background: var(--ws-panel); }
+  ol.shots li.on button { background: var(--ws-panel); border-color: var(--ws-line); }
+  ol.shots li.on .st { color: var(--uow-green); }
+  .st { font: 600 12px var(--font-mono); color: var(--ws-muted); grid-row: span 2; padding-top: 2px; font-variant-numeric: tabular-nums; }
+  .sn { font-weight: 800; }
+  .vo { color: var(--ws-muted); font-size: 13.5px; }
+  .note { border-top: 1px solid var(--ws-line); padding-top: 14px; font-size: 13px; color: var(--ws-muted); }
+  .note code { font-family: var(--font-mono); font-size: 12px; color: var(--ws-fg); }
+
+  /* #render: bare 1080×1920 stage for frame capture and video export */
+  body.render .app { display: block; padding: 0; }
+  body.render .side, body.render .transport, body.render .poster { display: none; }
+  body.render .stage { width: 1080px; height: 1920px; border-radius: 0; box-shadow: none; }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .stage { height: auto; width: 100%; }
+    .transport { max-width: none; }
+  }
+</style>
+
+<div class="app">
+  <div class="stage-col">
+    <div class="stage" id="stage">
+      <svg id="svg" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated explainer: what is VO2max"></svg>
+      <canvas id="grain" width="360" height="640"></canvas>
+      <div class="vignette"></div>
+      <div class="safe" id="safe" hidden>
+        <div class="top">Reels header</div>
+        <div class="side">Like / comment / share</div>
+        <div class="bottom">Caption, username and audio</div>
+      </div>
+      <button class="poster" id="poster" type="button" aria-label="Play from the start with sound"><span>&#9654;&nbsp; Play with sound</span></button>
+    </div>
+    <div class="transport">
+      <div class="scrub" id="scrubwrap">
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <input id="scrub" type="range" min="0" max="30" step="0.01" value="0" aria-label="Timeline position">
+      </div>
+      <div class="row">
+        <button class="btn primary" id="play" type="button" aria-label="Play">&#9654;</button>
+        <button class="btn" id="back" type="button" aria-label="Back one frame">&#8722;1f</button>
+        <button class="btn" id="fwd" type="button" aria-label="Forward one frame">+1f</button>
+        <span class="tc" id="tc">00:00.00 <small>/ 00:30.00</small></span>
+      </div>
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="snd" checked> Sound</label>
+        <label class="tog"><input type="checkbox" id="safeT"> Safe zones</label>
+        <label class="tog"><input type="checkbox" id="loop" checked> Loop</label>
+        <label class="tog">Speed
+          <select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <div class="eyebrow">Sport &amp; Exercise Science · Reel master v3</div>
+      <h1>What is <em>V̇O₂max?</em></h1>
+    </div>
+    <p>30 seconds. Shapes and words only, cut to the soundtrack at 120 bpm. Press play with sound on, scrub, step frame by frame, or jump to a beat.</p>
+    <ol class="shots" id="shots"></ol>
+    <div class="note">The on-screen words are the script. Export hook: <code>reel.seek(t)</code> draws any frame exactly at 1080 × 1920, 30 fps.</div>
+  </aside>
+</div>
+<audio id="track" src="assets/track.mp3" preload="auto"></audio>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script>
+(async () => {
+'use strict';
+if (!window.gsap) { document.getElementById('poster').innerHTML = '<span>Animation library failed to load. Reload the page.</span>'; return; }
+try { await Promise.all(['500', '600', '700', '800', '900'].flatMap(w => [document.fonts.load(`${w} 40px Figtree`), document.fonts.load(`italic ${w} 40px Figtree`)])); } catch (e) {}
+await document.fonts.ready;
+
+/* ============================================================ tokens + helpers */
+const K = { deep: '#291647', deep90: '#3e2d5a', bp: '#c68efd', bg: '#d4ef70', bg60: '#e5f5a9', white: '#ffffff' };
+const DUR = 30, FPS = 30, W = 1080, H = 1920;
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const io = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const outC = t => 1 - Math.pow(1 - t, 3);
+const smin = (a, b, k) => -Math.log(Math.exp(-k * a) + Math.exp(-k * b)) / k;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) { if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const G = (parent, attrs = {}) => el('g', attrs, parent);
+
+/* ---- rich text: *accent*, _{sub}, ^{sup}, V + U+0307 = rate dot; ≈ and → drawn as paths */
+const mctx = document.createElement('canvas').getContext('2d');
+const fontStr = (o, sub, it) => `${it ? 'italic ' : ''}${o.weight || 600} ${sub ? o.size * .62 : o.size}px Figtree`;
+function measure(s, o, sub, it) { mctx.font = fontStr(o, sub, it); mctx.letterSpacing = (o.ls || 0) + 'px'; return mctx.measureText(s).width; }
+const CUSTOM = { '≈': .62, '→': .92 };
+function parse(str) {
+  const out = []; let hl = false;
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (c === '*') { hl = !hl; continue; }
+    if ((c === '_' || c === '^') && str[i + 1] === '{') { const j = str.indexOf('}', i); for (const ch of str.slice(i + 2, j)) out.push({ ch, mode: c === '_' ? 'sub' : 'sup', hl }); i = j; continue; }
+    if (c === '̇') { out[out.length - 1].mark = 'dot'; continue; }
+    out.push({ ch: c, mode: 'n', hl });
+  }
+  return out;
+}
+function T(parent, str, o) {
+  const toks = parse(str), words = []; let cur = [];
+  for (const t of toks) { if (t.ch === ' ' && t.mode === 'n') { if (cur.length) words.push(cur); cur = []; } else cur.push(t); }
+  if (cur.length) words.push(cur);
+  const space = measure(' ', o, false, o.italic);
+  const Ws = words.map(w => {
+    const runs = []; let r = null;
+    for (const t of w) {
+      const solo = !!t.mark || CUSTOM[t.ch] !== undefined;
+      if (!r || solo || r.solo || r.mode !== t.mode || r.hl !== t.hl) { r = { s: '', mode: t.mode, hl: t.hl, solo, mark: t.mark }; runs.push(r); }
+      r.s += t.ch;
+    }
+    let x = 0;
+    for (const r of runs) {
+      r.it = o.italic || (r.hl && o.hlItalic);
+      r.w = CUSTOM[r.s] !== undefined ? CUSTOM[r.s] * o.size : measure(r.s, o, r.mode !== 'n', r.it);
+      r.x = x; x += r.w;
+    }
+    return { runs, w: x };
+  });
+  const lines = []; let ln = { words: [], w: 0 };
+  for (const w of Ws) {
+    if (ln.words.length && o.maxW && ln.w + space + w.w > o.maxW) { lines.push(ln); ln = { words: [], w: 0 }; }
+    w.x = ln.words.length ? ln.w + space : 0; ln.words.push(w); ln.w = w.x + w.w;
+  }
+  lines.push(ln);
+  const g = G(parent);
+  const lh = (o.lh || 1.15) * o.size, wordEls = [];
+  lines.forEach((ln, li) => {
+    const x0 = o.anchor === 'middle' ? o.x - ln.w / 2 : o.anchor === 'end' ? o.x - ln.w : o.x;
+    const y = o.y + li * lh;
+    for (const w of ln.words) {
+      const wg = G(g); wordEls.push(wg); wg._cx = x0 + w.x + w.w / 2; wg._y = y;
+      for (const r of w.runs) {
+        const fill = r.hl ? (o.hl || o.fill) : o.fill, rx = x0 + w.x + r.x;
+        const sub = r.mode !== 'n', s = sub ? o.size * .62 : o.size;
+        const by = y + (r.mode === 'sub' ? o.size * .2 : r.mode === 'sup' ? -o.size * .4 : 0);
+        if (CUSTOM[r.s] !== undefined) glyph(wg, r.s, rx, by, s, o.weight || 600, fill);
+        else el('text', { x: rx, y: by, fill, 'font-family': 'Figtree', 'font-size': s, 'font-weight': o.weight || 600,
+          'font-style': r.it ? 'italic' : 'normal', 'letter-spacing': o.ls || 0, text: r.s }, wg);
+        if (r.mark === 'dot') el('circle', { cx: rx + r.w / 2 + (r.it ? s * .08 : 0), cy: by - s * .9, r: s * .075, fill: o.dotFill || fill }, wg);
+      }
+    }
+  });
+  return { g, words: wordEls, w: Math.max(...lines.map(l => l.w)) };
+}
+function glyph(p, g, x, y, s, wt, fill) {
+  const m = y - s * .33, sw = s * .055 * (wt / 500) + 1; let d = '';
+  if (g === '≈') { for (const off of [-.09, .09]) { const yy = m + off * s, a = x + .08 * s; d += `M${a} ${yy + .02 * s} C${a + .1 * s} ${yy - .08 * s} ${a + .18 * s} ${yy - .06 * s} ${a + .23 * s} ${yy} S${a + .36 * s} ${yy + .08 * s} ${a + .46 * s} ${yy - .02 * s} `; } }
+  if (g === '→') d = `M${x + .08 * s} ${m} H${x + .8 * s} M${x + .58 * s} ${m - .2 * s} L${x + .8 * s} ${m} L${x + .58 * s} ${m + .2 * s}`;
+  el('path', { d, fill: 'none', stroke: fill, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, p);
+}
+
+/* ============================================================ scene graph */
+const defs = el('defs', {}, svg);
+defs.innerHTML = `
+  <radialGradient id="glowW"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glowG"><stop offset="0" stop-color="${K.bg}" stop-opacity=".45"/><stop offset="1" stop-color="${K.bg}" stop-opacity="0"/></radialGradient>
+  <filter id="blurV" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur id="blurVs" stdDeviation="0 0"/></filter>
+  <filter id="blurT" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur id="blurTs" stdDeviation="0"/></filter>
+  <clipPath id="clipHookA"><rect x="0" y="0" width="1080" height="372"/></clipPath>
+  <clipPath id="clipTitle"><rect x="-4000" y="-4000" width="9000" height="5030"/></clipPath>
+  <clipPath id="clipPay"><rect x="0" y="0" width="1080" height="990"/></clipPath>
+`;
+const bgRect = el('rect', { x: 0, y: 0, width: W, height: H, fill: K.deep }, svg);
+const cam = G(svg);                 // camera (follow, zoom, shake)
+const hook = G(cam);
+const graph = G(cam, { opacity: 0 });
+const line = el('line', { x1: 540, y1: 1500, x2: 540, y2: 1500, stroke: K.white, 'stroke-width': 8, 'stroke-linecap': 'round' }, cam);
+const dotG = G(cam);
+el('circle', { r: 70, fill: 'url(#glowW)' }, dotG);
+const dotC = el('circle', { r: 17, fill: K.white }, dotG);
+const zoomG = G(cam);                // the name scene zooms into the O
+const title = G(zoomG, { opacity: 0 });
+const heart = G(cam, { opacity: 0 });
+const test = G(cam, { opacity: 0 });
+const pay = G(cam, { opacity: 0 });
+const barEl = el('rect', { x: 280, y: -80, width: 520, height: 28, fill: K.bg }, zoomG);
+const spark = G(cam);
+const fade = el('rect', { x: 0, y: 0, width: W, height: H, fill: K.deep, opacity: 0 }, svg);
+
+/* ---- beat 1: hook */
+const hookA = G(hook, { 'clip-path': 'url(#clipHookA)' });
+const tA = T(hookA, 'Your body has a', { x: 540, y: 346, size: 92, weight: 700, fill: K.white, anchor: 'middle' });
+const tB = T(hook, 'ceiling.', { x: 540, y: 576, size: 250, weight: 900, italic: true, fill: K.bg, anchor: 'middle' });
+tB.g.setAttribute('filter', 'url(#blurT)');
+const ring = el('circle', { cx: 540, cy: 658, r: 20, fill: 'none', stroke: K.white, 'stroke-width': 6, opacity: 0 }, cam);
+const sparks = [...Array(12)].map(() => el('circle', { r: 5, fill: K.bp, opacity: 0 }, cam));
+
+/* ---- beat 2: the curve */
+const X = p => 120 + p * 860, FY = p => smin(.05 + 1.08 * p, .92, 30), Y = p => 1380 - FY(p) * 800;
+const xAxis = el('line', { x1: 540, x2: 540, y1: 1380, y2: 1380, stroke: K.white, 'stroke-width': 3, opacity: .5 }, graph);
+const yAxis = el('line', { x1: 120, x2: 120, y1: 1380, y2: 1380, stroke: K.white, 'stroke-width': 3, opacity: .5 }, graph);
+const labs = G(graph, { opacity: 0 });
+T(labs, 'EFFORT', { x: 980, y: 1432, size: 26, weight: 800, fill: K.bp, anchor: 'end', ls: 5 });
+const yl = G(labs, { transform: 'translate(88 660) rotate(-90)' });
+T(yl, 'OXYGEN USED', { x: 0, y: 0, size: 26, weight: 800, fill: K.bp, anchor: 'end', ls: 5 });
+const curve = el('path', { d: '', fill: 'none', stroke: K.white, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, graph);
+const w1 = T(graph, 'Push harder,', { x: 262, y: 1336, size: 58, weight: 800, fill: K.white });
+const w2 = T(graph, 'use more oxygen…', { x: 560, y: 1012, size: 58, weight: 800, fill: K.white });
+const w3 = T(cam, 'until you can’t.', { x: 540, y: 572, size: 112, weight: 900, italic: true, fill: K.bg, anchor: 'middle' });
+const nameIn = T(cam, 'That limit has a name:', { x: 540, y: 420, size: 64, weight: 700, fill: K.white, anchor: 'middle' });
+
+/* ---- beat 3: the name */
+const TB = 1000, BIG = 280;
+const titleClip = G(title, { 'clip-path': 'url(#clipTitle)' });
+const pieces = [];
+let O_STROKE, pieceCx;
+{
+  const fV = { size: BIG, weight: 800 }, fS = { size: BIG * .5, weight: 800 }, fM = { size: BIG * .5, weight: 600 };
+  const wV = measure('V', fV), wO = measure('O', fV), w2_ = measure('2', fS), wM = measure('max', fM, false, true);
+  let x = 540 - (wV + wO + w2_ + wM + 12) / 2;
+  const mk = (s, o, xx, dy, fill, it) => { const t = el('text', { x: xx, y: TB + dy, fill, 'font-family': 'Figtree', 'font-size': o.size, 'font-weight': o.weight, 'font-style': it ? 'italic' : 'normal', text: s }, titleClip); return t; };
+  const xV = x; pieces.push([mk('V', fV, x, 0, K.bg)]); x += wV;
+  const xO = x; const pO = mk('O', fV, x, 0, K.bg); x += wO;
+  const p2 = mk('2', fS, x, BIG * .16, K.bg); x += w2_ + 12;
+  pieces.push([pO, p2]);
+  const xM = x; pieces.push([mk('max', fM, x, BIG * .16, K.white, true)]);
+  pieceCx = [xV + wV / 2, (xO + x - 12) / 2, xM + wM / 2];
+  O_STROKE = [xO + BIG * .09, TB - BIG * .36];
+}
+const vdot = el('circle', { cx: pieceCx[0], cy: TB - BIG * .83, r: BIG * .062, fill: K.bp, opacity: 0 }, title);
+const vring = el('circle', { cx: pieceCx[0], cy: TB - BIG * .83, r: 10, fill: 'none', stroke: K.bp, 'stroke-width': 4, opacity: 0 }, title);
+const decode = [['Volume', 'per minute'], ['of oxygen', 'used by your body'], ['at maximum', 'effort']].map(([a, b], i) => {
+  const g = G(title, { opacity: 0 });
+  el('path', { d: `M${pieceCx[i] - 12} 1068 h24 l-12 -16 Z`, fill: K.bp }, g);
+  T(g, a, { x: pieceCx[i], y: 1122, size: 44, weight: 800, fill: K.bp, anchor: 'middle' });
+  T(g, b, { x: pieceCx[i], y: 1166, size: 32, weight: 600, fill: K.white, anchor: 'middle' });
+  return g;
+});
+
+/* ---- beat 4: the heart */
+const HC = [540, 760];
+const rings = [0, 1].map(() => el('circle', { cx: HC[0], cy: HC[1], r: 210, fill: 'none', stroke: K.deep, 'stroke-width': 6, opacity: 0 }, heart));
+const o2 = [...Array(8)].map(() => { const g = G(heart, { opacity: 0 }); el('circle', { r: 13, fill: K.deep }, g); el('circle', { cx: 18, r: 13, fill: K.deep }, g); return g; });
+const heartC = el('circle', { cx: HC[0], cy: HC[1], r: 210, fill: K.deep }, heart);
+const hA1 = T(heart, 'Your heart pumps', { x: 540, y: 1196, size: 76, weight: 800, fill: K.deep, anchor: 'middle' });
+const hA2 = T(heart, 'oxygen to your muscles.', { x: 540, y: 1286, size: 76, weight: 800, fill: K.deep, anchor: 'middle' });
+const hB1 = T(heart, 'How much it can pump', { x: 540, y: 1178, size: 62, weight: 700, fill: K.deep, anchor: 'middle' });
+const hB2 = T(heart, 'usually sets the limit.', { x: 540, y: 1300, size: 96, weight: 900, italic: true, fill: K.deep, anchor: 'middle' });
+const hq = { s: 0 };
+
+/* ---- beat 5: breath by breath */
+const TX = u => lerp(110, 980, u), TY = v => 1330 - v / .95 * 560;
+const tAx = el('path', { d: `M110 760 V1330 H980`, fill: 'none', stroke: K.white, 'stroke-width': 3, opacity: .45 }, test);
+const tl1 = T(test, 'Measured', { x: 100, y: 440, size: 104, weight: 800, fill: K.white });
+const tl2 = T(test, 'breath by breath.', { x: 100, y: 556, size: 104, weight: 900, italic: true, fill: K.bg });
+const tLab = G(test);
+T(tLab, 'TIME  →  HARDER EVERY MINUTE', { x: 980, y: 1380, size: 22, weight: 800, fill: K.bp, anchor: 'end', ls: 3 });
+const tyl = G(tLab, { transform: 'translate(78 760) rotate(-90)' });
+T(tyl, 'OXYGEN USED', { x: 0, y: 0, size: 22, weight: 800, fill: K.bp, anchor: 'end', ls: 3 });
+const BR = []; { const r = rng(21); for (let i = 0; i < 96; i++) { const u = i / 95; BR.push([u, smin(.1 + .95 * u, .8, 22) + (r() + r() + r() - 1.5) * .05]); } }
+const brDots = BR.map(([u, v]) => el('circle', { cx: TX(u), cy: TY(v), r: 7, fill: K.bp, opacity: 0 }, test));
+const trend = el('path', { d: '', fill: 'none', stroke: K.white, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, test);
+const tHead = el('circle', { r: 12, fill: K.white, opacity: 0 }, test);
+const vmaxLab = T(test, 'V̇O_{2}max', { x: 980, y: 800, size: 56, weight: 900, fill: K.bg, anchor: 'end', dotFill: K.bg });
+const tau = { v: 0 };
+
+/* ---- beat 6: payoff */
+const payTop = G(pay);
+const payClip = G(payTop, { 'clip-path': 'url(#clipPay)' });
+const pFind = T(payClip, 'Find your ceiling.', { x: 540, y: 962, size: 104, weight: 800, fill: K.bg, anchor: 'middle' });
+const pRaise = T(pay, 'Then raise it.', { x: 540, y: 950, size: 104, weight: 800, italic: true, fill: K.white, anchor: 'middle' });
+const logo = el('image', { href: 'assets/logo-white.png', x: 540 - 180, y: 1160, width: 360, height: 360 / 2.752, opacity: 0 }, pay);
+
+/* ============================================================ timeline (cut to motion/tools/soundtrack.py) */
+const dot = { x: 540, y: 1500, sx: 1, sy: 1, o: 0 };
+const b = { x: 280, y: -80, w: 520, h: 28, flex: 1 };
+const sh = { v: 0 };
+const cp = { p: 0 };
+const ax = { l: 540, r: 540, top: 1380 };
+const tl = gsap.timeline({ paused: true, onUpdate: () => fx(tl.time()) });
+tl.set({}, {}, DUR);
+const S = (t, target, vars) => tl.set(target, vars, t);
+const A = (t, target, vars) => tl.to(target, vars, t);
+const F = (t, target, from, to) => tl.fromTo(target, from, to, t);
+const hit = (t, v = 1) => { S(t, sh, { v }); A(t, sh, { v: 0, duration: .45, ease: 'power2.out' }); };
+
+// 1 · HOOK — a line of oxygen rises and hits the ceiling (impact on 0.95 s)
+A(0, dot, { o: 1, duration: .12 });
+A(.05, dot, { sx: 1.4, sy: .6, duration: .26, ease: 'power2.out' });                 // anticipation
+A(.33, dot, { y: 675, duration: .62, ease: 'expo.in' });                             // launch
+A(.33, dot, { sx: .7, sy: 1.7, duration: .25, ease: 'power2.in' });                  // stretch
+A(.45, b, { y: 630, duration: .5, ease: 'power3.in' });                              // ceiling drops
+S(.95, dot, { sx: 1.9, sy: .45 }); A(1.0, dot, { sx: 1, sy: 1, duration: .6, ease: 'elastic.out(1, .35)' });
+S(.95, b, { flex: 2.4 }); A(.95, b, { flex: 1, duration: .7, ease: 'elastic.out(1, .3)' });
+hit(.95, 1);
+S(.95, ring, { opacity: 1, attr: { r: 20 } }); A(.95, ring, { attr: { r: 300 }, opacity: 0, duration: .7, ease: 'power2.out' });
+sparks.forEach((s, i) => {
+  const a = Math.PI * (.08 + .84 * i / 11), d = 140 + (i % 3) * 70;
+  S(.95, s, { opacity: 1, attr: { cx: 540, cy: 668 } });
+  A(.95, s, { attr: { cx: 540 + Math.cos(a) * d * 1.6, cy: 668 + Math.sin(a) * d }, opacity: 0, duration: .6 + (i % 3) * .1, ease: 'power2.out' });
+});
+F(1.15, tA.words, { y: 110 }, { y: 0, duration: .55, stagger: .06, ease: 'expo.out' });
+S(1.72, tB.g, { opacity: 1, scale: 1.8, svgOrigin: '540 520' }); S(0, tB.g, { opacity: 0 });
+A(1.72, tB.g, { scale: 1, svgOrigin: '540 520', duration: .28, ease: 'power4.in' });
+S(1.72, '#blurTs', { attr: { stdDeviation: 14 } }); A(1.9, '#blurTs', { attr: { stdDeviation: 0 }, duration: .1 });
+hit(2.0, .55);
+A(3.45, tA.words, { y: -140, opacity: 0, duration: .4, stagger: .03, ease: 'power3.in' });
+A(3.5, tB.g, { y: -260, opacity: 0, duration: .42, ease: 'power3.in' });
+
+// 2 · THE CURVE — push harder, use more oxygen… until you can’t
+A(4.0, dot, { y: 1380, duration: .45, ease: 'power2.in' });
+S(4.45, dot, { sx: 1.6, sy: .6 }); A(4.47, dot, { sx: 1, sy: 1, duration: .45, ease: 'elastic.out(1, .4)' });
+S(4.45, line, { opacity: 0 });
+A(4.0, b, { x: 60, w: 960, y: 600, duration: .7, ease: 'power3.inOut' });
+S(4.4, graph, { opacity: 1 });
+A(4.45, ax, { l: 120, r: 980, duration: .5, ease: 'expo.out' });
+A(4.65, ax, { top: 650, duration: .55, ease: 'expo.out' });
+A(4.5, dot, { x: 120, duration: .42, ease: 'power3.inOut' });
+F(4.9, labs, { opacity: 0 }, { opacity: 1, duration: .3 });
+A(4.95, cp, { p: .8, duration: 2.95, ease: 'power2.in' });
+A(7.9, cp, { p: 1, duration: .9, ease: 'power2.out' });
+F(5.15, w1.words, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' });
+F(6.55, w2.words, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' });
+F(8.15, w3.g, { opacity: 0, scale: 1.7, svgOrigin: '540 530' }, { opacity: 1, scale: 1, svgOrigin: '540 530', duration: .25, ease: 'power4.in' });
+hit(8.4, .7);
+F(9.25, nameIn.words, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .4, stagger: .06, ease: 'power3.out' });
+
+// 3 · THE NAME — drop on 10.0 s; the ceiling becomes the underline
+A(9.92, graph, { scaleY: 0, opacity: 0, svgOrigin: '540 1380', duration: .35, ease: 'power3.in' });
+A(9.92, dot, { o: 0, duration: .2 });
+A(9.9, w3.g, { y: 430, opacity: 0, duration: .5, ease: 'power3.in' });
+A(9.9, b, { x: 110, w: 860, y: 1030, h: 24, duration: .55, ease: 'power4.inOut' });
+A(10.0, nameIn.g, { opacity: 0, y: -40, duration: .35, ease: 'power2.in' });
+S(10.2, title, { opacity: 1 });
+pieces.forEach((ps, i) => F(10.3 + i * .08, ps, { y: BIG * 1.2 }, { y: 0, duration: .7, ease: 'back.out(1.4)' }));
+F(10.85, vdot, { opacity: 0, attr: { cy: TB - BIG * .83 - 360 } }, { opacity: 1, attr: { cy: TB - BIG * .83 }, duration: .5, ease: 'bounce.out' });
+S(11.3, vring, { opacity: 1, attr: { r: 20 } }); A(11.3, vring, { opacity: 0, attr: { r: 90 }, duration: .6, ease: 'power2.out' });
+[11.4, 12.3, 13.2].forEach((t, i) => {
+  pieces.forEach((ps, j) => A(t, ps, { opacity: j === i ? 1 : .22, duration: .25 }));
+  A(t, vdot, { opacity: i === 0 ? 1 : .22, duration: .25 });
+  F(t, decode[i], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .4, ease: 'back.out(2)' });
+});
+pieces.forEach(ps => A(14.1, ps, { opacity: 1, duration: .25 })); A(14.1, vdot, { opacity: 1, duration: .25 });
+
+// 4 · THE HEART — zoom through the O into a green field; the heart pumps on the beat
+A(14.75, zoomG, { scale: 42, svgOrigin: `${O_STROKE[0]} ${O_STROKE[1]}`, duration: .55, ease: 'expo.in' });
+S(15.3, bgRect, { attr: { fill: K.bg } }); S(15.3, zoomG, { opacity: 0, scale: 1 }); S(15.3, heart, { opacity: 1 });
+F(15.32, hq, { s: 0 }, { s: 1, duration: .55, ease: 'back.out(1.8)' });
+F(16.0, hA1.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
+F(16.25, hA2.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
+A(18.0, [hA1.g, hA2.g], { opacity: 0, y: -50, duration: .3, ease: 'power2.in' });
+F(18.3, hB1.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
+F(18.75, hB2.g, { opacity: 0, scale: 1.6, svgOrigin: '540 1270' }, { opacity: 1, scale: 1, svgOrigin: '540 1270', duration: .25, ease: 'power4.in' });
+A(20.85, hq, { s: 1.25, duration: .1, ease: 'power2.out' });
+A(20.95, hq, { s: 12, duration: .45, ease: 'expo.in' });
+A(20.9, [hB1.g, hB2.g], { opacity: 0, duration: .2 });
+
+// 5 · BREATH BY BREATH — back to Deep Purple; the curve builds from breaths and hits the ceiling
+S(21.4, bgRect, { attr: { fill: K.deep } }); S(21.4, heart, { opacity: 0 }); S(21.4, test, { opacity: 1 });
+S(21.4, title, { opacity: 0 }); S(24.74, zoomG, { opacity: 1 });
+F(21.55, tl1.words, { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: .5, ease: 'expo.out' });
+F(21.8, tl2.words, { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .07, ease: 'expo.out' });
+F(21.5, tAx, { opacity: 0 }, { opacity: .45, duration: .3 });
+F(21.5, tLab, { opacity: 0 }, { opacity: 1, duration: .3 });
+F(22.3, tau, { v: 0 }, { v: 1, duration: 2.4, ease: 'none' });
+S(24.75, b, { x: TX(.64), w: 980 - TX(.64), y: -80, h: 18, flex: 1 });
+A(24.75, b, { y: TY(.845) - 20, duration: .25, ease: 'power4.in' });
+S(25.0, b, { flex: 2 }); A(25.0, b, { flex: 1, duration: .6, ease: 'elastic.out(1, .3)' });
+hit(25.0, .8);
+F(25.1, vmaxLab.words, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' });
+
+// 6 · PAYOFF — find your ceiling, then raise it; ends on the opening ground so the reel loops
+A(26.0, [test], { opacity: 0, y: 60, duration: .4, ease: 'power2.in' });
+A(26.0, b, { x: 190, w: 700, y: 1000, h: 24, duration: .55, ease: 'power4.inOut' });
+S(26.3, pay, { opacity: 1 });
+F(26.35, pFind.words, { y: 130 }, { y: 0, duration: .55, stagger: .07, ease: 'expo.out' });
+S(26.6, dot, { x: 540, y: 1500, sx: 1, sy: 1, o: 0 }); S(26.6, line, { opacity: 1 });
+A(26.6, dot, { o: 1, sx: 1.4, sy: .6, duration: .12 });
+A(26.72, dot, { y: 1041, sx: .7, sy: 1.7, duration: .28, ease: 'expo.in' });
+S(27.0, dot, { sx: 1.8, sy: .5 }); A(27.02, dot, { sx: 1, sy: 1, duration: .4, ease: 'elastic.out(1, .4)' });
+S(27.0, b, { flex: 2 }); A(27.0, b, { flex: 1, duration: .6, ease: 'elastic.out(1, .3)' });
+A(27.0, b, { y: 800, duration: .8, ease: 'expo.out' });
+hit(27.0, .6);
+A(27.5, [line], { opacity: 0, duration: .3 }); A(27.5, dot, { o: 0, duration: .3 });
+F(27.45, pRaise.words, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, stagger: .08, ease: 'expo.out' });
+F(28.0, logo, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .6, ease: 'power2.out' });
+A(29.3, fade, { opacity: 1, duration: .7, ease: 'power1.inOut' });
+
+/* ============================================================ per-frame drawing */
+const grainCv = document.getElementById('grain'), gctx = grainCv.getContext('2d');
+const GRAIN = []; { const r = rng(3); for (let k = 0; k < 6; k++) { const id = gctx.createImageData(360, 640); for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - .5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; } GRAIN.push(id); } }
+let lastG = -1;
+function beatEnv(t, t0) { const m = ((t - t0) % .5 + .5) % .5; return [Math.exp(-Math.pow(m / .06, 2)), .55 * Math.exp(-Math.pow((m - .18) / .05, 2))]; }
+function fx(t) {
+  const f = Math.round(t * FPS), gi = f % GRAIN.length;
+  if (gi !== lastG) { gctx.putImageData(GRAIN[gi], 0, 0); lastG = gi; }
+  // camera: follow the dot up the curve, then settle
+  const fol = io(P(t, 4.9, 5.6)) * (1 - io(P(t, 7.95, 8.9)));
+  const p = cp.p, px = X(p), py = Y(p);
+  const cx = lerp(540, px + 90, fol), cy = lerp(960, py - 40, fol), z = 1 + .35 * fol;
+  const ox = Math.sin(t * 97) * 16 * sh.v, oy = Math.cos(t * 83) * 16 * sh.v;
+  cam.setAttribute('transform', `translate(${540 + ox} ${960 + oy}) scale(${z}) translate(${-cx} ${-cy})`);
+  // dot: tweened in the hook, riding the curve afterwards
+  let dx = dot.x, dy = dot.y;
+  if (t >= 4.95 && t < 10.2) { dx = px; dy = py; }
+  if (t >= 27.0 && t < 28) dy = b.y + b.h + 17;   // the dot keeps pushing the ceiling up
+  dotG.setAttribute('transform', `translate(${dx} ${dy}) scale(${dot.sx} ${dot.sy})`);
+  dotG.setAttribute('opacity', dot.o);
+  line.setAttribute('x2', dx); line.setAttribute('y2', dy);
+  // the ceiling
+  const hh = b.h * b.flex;
+  barEl.setAttribute('x', b.x); barEl.setAttribute('width', b.w); barEl.setAttribute('y', b.y - (hh - b.h) / 2); barEl.setAttribute('height', hh);
+  // axes + curve
+  xAxis.setAttribute('x1', ax.l); xAxis.setAttribute('x2', ax.r); yAxis.setAttribute('y2', ax.top);
+  if (t >= 4.9 && t < 10.4) {
+    let d = ''; for (let q = 0; q <= p + 1e-6; q += .006) d += (d ? 'L' : 'M') + X(q).toFixed(1) + ' ' + Y(q).toFixed(1);
+    curve.setAttribute('d', d);
+  }
+  // friction sparks while the dot scrapes the ceiling
+  while (spark.firstChild) spark.firstChild.remove();
+  if (t > 7.85 && t < 8.85) {
+    const r = rng(f * 13 + 7);
+    for (let k = 0; k < 7; k++) { const a = r(); el('circle', { cx: px - 20 - a * 90, cy: py - 12 + (r() - .5) * 20 - a * 30, r: 2 + r() * 4, fill: r() < .5 ? K.bg : K.white, opacity: (1 - a) * (1 - P(t, 8.5, 8.85)) }, spark); }
+  }
+  // heart
+  if (t >= 15.3 && t < 21.5) {
+    let s = hq.s;
+    if (t >= 16 && t < 20.85) { const [l, d] = beatEnv(t, 16); s *= 1 + .1 * l + .05 * d; }
+    heartC.setAttribute('r', 210 * s);
+    rings.forEach(r => r.setAttribute('opacity', 0)); o2.forEach(g => g.setAttribute('opacity', 0));
+    if (t >= 16 && t < 21.3) {
+      const k0 = Math.floor((t - 16) / .5);
+      for (let k = Math.max(0, k0 - 1); k <= k0 && k < 10; k++) {
+        const age = t - (16 + k * .5); if (age < 0 || age > 1) continue;
+        const r = rings[k % 2];
+        r.setAttribute('r', 210 + outC(age) * 760); r.setAttribute('opacity', (Math.pow(1 - age, 2) * .8).toFixed(3)); r.setAttribute('stroke-width', 2 + 8 * (1 - age));
+        if (age < .9) for (let j = 0; j < 4; j++) {
+          const g = o2[(k % 2) * 4 + j], a = Math.PI / 4 + j * Math.PI / 2 + k * .35, dist = 230 + outC(age / .9) * 700;
+          g.setAttribute('transform', `translate(${HC[0] + Math.cos(a) * dist} ${HC[1] + Math.sin(a) * dist}) rotate(${a * 57.3}) scale(${1 - age * .4})`);
+          g.setAttribute('opacity', (1 - age / .9).toFixed(3));
+        }
+      }
+    }
+  }
+  // breath by breath
+  if (t >= 21.4 && t < 26.6) {
+    const u = tau.v;
+    brDots.forEach((e, i) => {
+      const age = (u - BR[i][0]) * 2.4;          // seconds since this breath appeared
+      const on = age >= 0 && t >= 22.3;
+      e.setAttribute('opacity', on ? .95 : 0);
+      e.setAttribute('r', on ? 7 + 9 * Math.max(0, 1 - age / .25) : 0);
+    });
+    let d = ''; for (let q = 0; q <= u + 1e-6; q += .005) d += (d ? 'L' : 'M') + TX(q).toFixed(1) + ' ' + TY(smin(.1 + .95 * q, .8, 22)).toFixed(1);
+    trend.setAttribute('d', d);
+    tHead.setAttribute('cx', TX(u)); tHead.setAttribute('cy', TY(smin(.1 + .95 * u, .8, 22))); tHead.setAttribute('opacity', u > 0 && u < 1 ? 1 : 0);
+  }
+  // payoff: “Find your ceiling.” rides on top of the bar
+  if (t >= 26) payTop.setAttribute('transform', `translate(0 ${(b.y - 1000).toFixed(2)})`);
+  ui(t);
+}
+
+/* ============================================================ workspace + playback */
+const BEATS = [
+  [0, 'Hook', 'Your body has a ceiling.'],
+  [4, 'The curve', 'Push harder, use more oxygen… until you can’t. That limit has a name:'],
+  [10, 'The name', 'V̇O₂max: volume per minute · of oxygen used by your body · at maximum effort.'],
+  [15.3, 'The heart', 'Your heart pumps oxygen to your muscles. How much it can pump usually sets the limit.'],
+  [21.4, 'The test', 'Measured breath by breath. The curve hits the ceiling: V̇O₂max.'],
+  [26, 'The payoff', 'Find your ceiling. Then raise it.'],
+];
+const shotsEl = document.getElementById('shots');
+const fmt = s => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(2).padStart(5, '0')}`; };
+BEATS.forEach(([t, name, words]) => {
+  const li = document.createElement('li'), bt = document.createElement('button'); bt.type = 'button';
+  bt.innerHTML = `<span class="st">${fmt(t)}</span><span class="sn">${name}</span><span class="vo">${words}</span>`;
+  bt.addEventListener('click', () => seek(t + .6));
+  li.appendChild(bt); shotsEl.appendChild(li);
+});
+const scrub = document.getElementById('scrub'), fill = document.getElementById('fill'), tc = document.getElementById('tc'), wrap = document.getElementById('scrubwrap');
+BEATS.forEach(([t]) => { if (!t) return; const d = document.createElement('div'); d.className = 'tick'; d.style.left = (t / DUR * 100) + '%'; wrap.insertBefore(d, scrub); });
+let lastShot = -1;
+function ui(t) {
+  scrub.value = t; fill.style.width = (t / DUR * 100) + '%';
+  tc.innerHTML = `${fmt(t)} <small>/ ${fmt(DUR)}</small>`;
+  let s = 0; BEATS.forEach(([st], i) => { if (t >= st) s = i; });
+  if (s !== lastShot) { [...shotsEl.children].forEach((li, i) => li.classList.toggle('on', i === s)); lastShot = s; }
+}
+// playback clock: the audio drives the picture when sound is on, so they cannot drift
+const audio = document.getElementById('track');
+const playBtn = document.getElementById('play'), poster = document.getElementById('poster');
+let playing = false, soundOn = true, speed = 1, clock0 = 0, time0 = 0;
+const render = t => tl.time(clamp(t, 0, DUR), false);
+function now() {
+  if (soundOn && !audio.paused && audio.readyState >= 2) return audio.currentTime;
+  return time0 + (performance.now() - clock0) / 1000 * speed;
+}
+function startAt(t) {
+  time0 = t; clock0 = performance.now();
+  if (soundOn) { try { audio.currentTime = t; audio.playbackRate = speed; audio.play().catch(() => {}); } catch (e) {} }
+}
+function frame() {
+  if (!playing) return;
+  let t = now();
+  if (t >= DUR) {
+    if (document.getElementById('loop').checked) { startAt(0); t = 0; }
+    else { render(DUR); setPlaying(false); return; }
+  }
+  render(t); requestAnimationFrame(frame);
+}
+function setPlaying(p) {
+  playing = p; poster.hidden = true;
+  playBtn.innerHTML = p ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-label', p ? 'Pause' : 'Play');
+  if (p) { let t = tl.time(); if (t >= DUR - .02) t = 0; startAt(t); requestAnimationFrame(frame); }
+  else audio.pause();
+}
+function seek(t) { if (playing) setPlaying(false); render(t); poster.hidden = true; try { audio.currentTime = clamp(t, 0, DUR); } catch (e) {} }
+playBtn.addEventListener('click', () => setPlaying(!playing));
+poster.addEventListener('click', () => { render(0); setPlaying(true); });
+scrub.addEventListener('input', () => seek(parseFloat(scrub.value)));
+document.getElementById('back').addEventListener('click', () => seek(Math.round(tl.time() * FPS - 1) / FPS));
+document.getElementById('fwd').addEventListener('click', () => seek(Math.round(tl.time() * FPS + 1) / FPS));
+document.getElementById('snd').addEventListener('change', e => { soundOn = e.target.checked; if (playing) { const t = tl.time(); if (soundOn) startAt(t); else { audio.pause(); time0 = t; clock0 = performance.now(); } } });
+document.getElementById('safeT').addEventListener('change', e => { document.getElementById('safe').hidden = !e.target.checked; });
+document.getElementById('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); audio.playbackRate = speed; if (playing) startAt(tl.time()); });
+document.addEventListener('keydown', e => {
+  if (e.target.closest('select, input[type=checkbox], button')) return;
+  if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
+  if (e.code === 'ArrowLeft') seek(Math.round(tl.time() * FPS - 1) / FPS);
+  if (e.code === 'ArrowRight') seek(Math.round(tl.time() * FPS + 1) / FPS);
+});
+
+window.reel = { duration: DUR, fps: FPS, seek(t) { render(t); }, ready: document.fonts.ready };
+if (location.hash === '#render') document.body.classList.add('render');
+render(12.0);           // poster frame: the name, decoded
+poster.hidden = false;
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) { speed = .5; document.getElementById('speed').value = '0.5'; }
+})();
+</script>

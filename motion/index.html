@@ -4,16 +4,16 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
 <style>
   /* Layout: an editing workspace. The 9:16 stage is the hero; transport and beat list sit beside it (stacked on phones).
-     One deliberate dark look so the stage colours read true. Stage colours are University of Winchester tokens. */
+     One deliberate dark look so the grade on the stage reads true. */
   :root {
-    --ws-bg: #130b1f;
-    --ws-panel: #1d1330;
-    --ws-line: #3e2d5a;
-    --ws-fg: #f4f0fa;
-    --ws-muted: #b5aac9;
-    --uow-deep: #291647;
-    --uow-purple: #c68efd;
-    --uow-green: #d4ef70;
+    --ws-bg: #0b0714;
+    --ws-panel: #171026;
+    --ws-line: #2e2248;
+    --ws-fg: #f3effa;
+    --ws-muted: #aa9fc2;
+    --lime: #d4ef70;
+    --violet: #b286ff;
+    --ink: #1a1030;
     --font-ui: "Figtree", "Helvetica Neue", Arial, sans-serif;
     --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
     color-scheme: dark;
@@ -28,23 +28,22 @@
   .stage-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .stage {
     position: relative; height: min(86vh, 1080px); aspect-ratio: 9 / 16; max-width: 100%;
-    background: var(--uow-deep); border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--ws-line);
+    background: #05030a; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--ws-line), 0 30px 80px rgba(0,0,0,.5);
   }
-  .stage svg, .stage canvas, .stage .vignette, .stage .safe { position: absolute; inset: 0; width: 100%; height: 100%; }
-  .stage canvas { mix-blend-mode: overlay; opacity: .09; pointer-events: none; }
-  .stage .vignette { pointer-events: none; opacity: .3; background: radial-gradient(ellipse 80% 62% at 50% 46%, rgba(0,0,0,0) 50%, rgba(0,0,0,.7) 100%); }
+  .stage canvas, .stage .safe { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   .safe { pointer-events: none; }
-  .safe div { position: absolute; left: 0; right: 0; border: 1.5px dashed rgba(198,142,253,.9); background: rgba(198,142,253,.12);
+  .safe div { position: absolute; left: 0; right: 0; border: 1.5px dashed rgba(178,134,255,.9); background: rgba(178,134,255,.12);
     font: 600 11px/1.2 var(--font-mono); color: #fff; padding: 4px 6px; text-shadow: 0 1px 2px #000; }
   .safe .top { top: 0; height: 11.5%; }
   .safe .bottom { bottom: 0; height: 21%; }
   .safe .side { left: auto; right: 0; width: 11%; top: 57%; height: 27%; }
   .poster {
-    position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 9%; background: rgba(19,11,31,.25);
-    border: 0; cursor: pointer; color: var(--uow-deep); font: 800 15px var(--font-ui); letter-spacing: .08em; text-transform: uppercase;
+    position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 8%; background: transparent;
+    border: 0; cursor: pointer; font: 800 15px var(--font-ui); letter-spacing: .08em; text-transform: uppercase;
   }
-  .poster span { display: inline-flex; align-items: center; gap: 10px; background: var(--uow-green); color: var(--uow-deep); padding: 14px 22px; border-radius: 999px; }
-  .poster:focus-visible { outline: 3px solid var(--uow-green); outline-offset: -6px; }
+  .poster span { display: inline-flex; align-items: center; gap: 10px; background: var(--lime); color: var(--ink); padding: 14px 22px; border-radius: 999px; box-shadow: 0 0 40px rgba(212,239,112,.35); }
+  .poster:focus-visible { outline: 3px solid var(--lime); outline-offset: -6px; }
+  .err { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--ws-fg); background: #05030a; }
 
   .transport { display: grid; gap: 10px; width: 100%; max-width: calc(min(86vh, 1080px) * 9 / 16); }
   .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -52,24 +51,24 @@
     display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 12px; border-radius: 999px;
     background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); cursor: pointer; font: 700 13px var(--font-ui);
   }
-  .btn.primary { background: var(--uow-green); color: var(--uow-deep); border-color: var(--uow-green); min-width: 48px; height: 48px; font-size: 16px; }
-  .btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--uow-green); outline-offset: 2px; }
+  .btn.primary { background: var(--lime); color: var(--ink); border-color: var(--lime); min-width: 48px; height: 48px; font-size: 16px; }
+  .btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
   .tc { font: 600 14px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ws-fg); }
   .tc small { color: var(--ws-muted); font-weight: 500; }
   .scrub { position: relative; height: 34px; }
   .scrub .track { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--ws-line); overflow: hidden; }
-  .scrub .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--uow-green); width: 0; }
-  .scrub .tick { position: absolute; top: 8px; width: 2px; height: 18px; background: var(--uow-purple); border-radius: 1px; }
+  .scrub .fill { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, var(--violet), var(--lime)); width: 0; }
+  .scrub .tick { position: absolute; top: 8px; width: 2px; height: 18px; background: var(--violet); border-radius: 1px; }
   .scrub input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; }
   label.tog { display: inline-flex; align-items: center; gap: 6px; color: var(--ws-muted); font-size: 13px; cursor: pointer; }
-  label.tog input { accent-color: var(--uow-green); }
+  label.tog input { accent-color: var(--lime); }
   select { background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); border-radius: 8px; height: 32px; font: 600 13px var(--font-ui); }
 
   .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
   .side h1 { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 800; text-wrap: balance; }
-  .side h1 em { color: var(--uow-green); font-style: italic; }
+  .side h1 em { color: var(--lime); font-style: italic; }
   .side p { margin: 0; color: var(--ws-muted); max-width: 60ch; }
-  .eyebrow { font: 800 11px var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--uow-purple); }
+  .eyebrow { font: 800 11px var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--violet); }
   ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
   ol.shots li button {
     width: 100%; text-align: left; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 2px 12px;
@@ -77,14 +76,13 @@
   }
   ol.shots li button:hover { background: var(--ws-panel); }
   ol.shots li.on button { background: var(--ws-panel); border-color: var(--ws-line); }
-  ol.shots li.on .st { color: var(--uow-green); }
+  ol.shots li.on .st { color: var(--lime); }
   .st { font: 600 12px var(--font-mono); color: var(--ws-muted); grid-row: span 2; padding-top: 2px; font-variant-numeric: tabular-nums; }
   .sn { font-weight: 800; }
   .vo { color: var(--ws-muted); font-size: 13.5px; }
   .note { border-top: 1px solid var(--ws-line); padding-top: 14px; font-size: 13px; color: var(--ws-muted); }
   .note code { font-family: var(--font-mono); font-size: 12px; color: var(--ws-fg); }
 
-  /* #render: bare 1080×1920 stage for frame capture and video export */
   body.render .app { display: block; padding: 0; }
   body.render .side, body.render .transport, body.render .poster { display: none; }
   body.render .stage { width: 1080px; height: 1920px; border-radius: 0; box-shadow: none; }
@@ -98,9 +96,7 @@
 <div class="app">
   <div class="stage-col">
     <div class="stage" id="stage">
-      <svg id="svg" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated explainer: what is VO2max"></svg>
-      <canvas id="grain" width="360" height="640"></canvas>
-      <div class="vignette"></div>
+      <canvas id="gl" width="1080" height="1920" aria-label="Animated explainer: what is VO2max"></canvas>
       <div class="safe" id="safe" hidden>
         <div class="top">Reels header</div>
         <div class="side">Like / comment / share</div>
@@ -121,6 +117,7 @@
       </div>
       <div class="row">
         <label class="tog"><input type="checkbox" id="snd" checked> Sound</label>
+        <label class="tog"><input type="checkbox" id="hq"> Full resolution</label>
         <label class="tog"><input type="checkbox" id="safeT"> Safe zones</label>
         <label class="tog"><input type="checkbox" id="loop" checked> Loop</label>
         <label class="tog">Speed
@@ -132,488 +129,682 @@
 
   <aside class="side">
     <div>
-      <div class="eyebrow">Sport &amp; Exercise Science · Reel master v3</div>
+      <div class="eyebrow">Motion reel · v4 · WebGL</div>
       <h1>What is <em>V̇O₂max?</em></h1>
     </div>
-    <p>30 seconds. Shapes and words only, cut to the soundtrack at 120 bpm. Press play with sound on, scrub, step frame by frame, or jump to a beat.</p>
+    <p>Oxygen as light. Thousands of particles, bloom, shockwaves and variable-weight type, rendered live on the GPU and cut to the soundtrack. Press play with sound on, scrub, or jump to a beat.</p>
     <ol class="shots" id="shots"></ol>
-    <div class="note">The on-screen words are the script. Export hook: <code>reel.seek(t)</code> draws any frame exactly at 1080 × 1920, 30 fps.</div>
+    <div class="note">Everything is a pure function of time, so any frame can be rendered exactly for export with <code>reel.seek(t)</code> at 1080 × 1920, 30 fps.</div>
   </aside>
 </div>
 <audio id="track" src="assets/track.mp3" preload="auto"></audio>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
 <script>
 (async () => {
 'use strict';
-if (!window.gsap) { document.getElementById('poster').innerHTML = '<span>Animation library failed to load. Reload the page.</span>'; return; }
-try { await Promise.all(['500', '600', '700', '800', '900'].flatMap(w => [document.fonts.load(`${w} 40px Figtree`), document.fonts.load(`italic ${w} 40px Figtree`)])); } catch (e) {}
+const stageEl = document.getElementById('stage');
+const fail = msg => { const d = document.createElement('div'); d.className = 'err'; d.textContent = msg; stageEl.appendChild(d); };
+try { await Promise.all(['300', '400', '600', '700', '800', '900'].flatMap(w => [document.fonts.load(`${w} 40px Figtree`), document.fonts.load(`italic ${w} 40px Figtree`)])); } catch (e) {}
 await document.fonts.ready;
+const logo = await new Promise(r => { const i = new Image(); i.onload = () => r(i); i.onerror = () => r(null); i.src = 'assets/logo-white.png'; });
 
-/* ============================================================ tokens + helpers */
-const K = { deep: '#291647', deep90: '#3e2d5a', bp: '#c68efd', bg: '#d4ef70', bg60: '#e5f5a9', white: '#ffffff' };
+/* ================================================================ time + maths */
 const DUR = 30, FPS = 30, W = 1080, H = 1920;
-const NS = 'http://www.w3.org/2000/svg';
-const svg = document.getElementById('svg');
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, t) => a + (b - a) * t;
 const P = (t, a, b) => clamp((t - a) / (b - a));
-const io = t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const outC = t => 1 - Math.pow(1 - t, 3);
+const E = {
+  inQ: x => x * x, outQ: x => 1 - (1 - x) * (1 - x), inC: x => x * x * x, outC: x => 1 - Math.pow(1 - x, 3),
+  ioC: x => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2),
+  ioQ5: x => (x < .5 ? 16 * Math.pow(x, 5) : 1 - Math.pow(-2 * x + 2, 5) / 2),
+  inE: x => (x <= 0 ? 0 : Math.pow(2, 10 * x - 10)), outE: x => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x)),
+  back: (x, s = 1.7) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2),
+  elastic: (x, p = .3) => (x <= 0 ? 0 : x >= 1 ? 1 : Math.pow(2, -10 * x) * Math.sin((x * 10 - .75) * (2 * Math.PI) / (p * 3.33)) + 1),
+};
 const smin = (a, b, k) => -Math.log(Math.exp(-k * a) + Math.exp(-k * b)) / k;
-function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
-function el(tag, attrs = {}, parent) {
-  const e = document.createElementNS(NS, tag);
-  for (const k in attrs) { if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); }
-  if (parent) parent.appendChild(e);
-  return e;
-}
-const G = (parent, attrs = {}) => el('g', attrs, parent);
-
-/* ---- rich text: *accent*, _{sub}, ^{sup}, V + U+0307 = rate dot; ≈ and → drawn as paths */
-const mctx = document.createElement('canvas').getContext('2d');
-const fontStr = (o, sub, it) => `${it ? 'italic ' : ''}${o.weight || 600} ${sub ? o.size * .62 : o.size}px Figtree`;
-function measure(s, o, sub, it) { mctx.font = fontStr(o, sub, it); mctx.letterSpacing = (o.ls || 0) + 'px'; return mctx.measureText(s).width; }
-const CUSTOM = { '≈': .62, '→': .92 };
-function parse(str) {
-  const out = []; let hl = false;
-  for (let i = 0; i < str.length; i++) {
-    const c = str[i];
-    if (c === '*') { hl = !hl; continue; }
-    if ((c === '_' || c === '^') && str[i + 1] === '{') { const j = str.indexOf('}', i); for (const ch of str.slice(i + 2, j)) out.push({ ch, mode: c === '_' ? 'sub' : 'sup', hl }); i = j; continue; }
-    if (c === '̇') { out[out.length - 1].mark = 'dot'; continue; }
-    out.push({ ch: c, mode: 'n', hl });
-  }
-  return out;
-}
-function T(parent, str, o) {
-  const toks = parse(str), words = []; let cur = [];
-  for (const t of toks) { if (t.ch === ' ' && t.mode === 'n') { if (cur.length) words.push(cur); cur = []; } else cur.push(t); }
-  if (cur.length) words.push(cur);
-  const space = measure(' ', o, false, o.italic);
-  const Ws = words.map(w => {
-    const runs = []; let r = null;
-    for (const t of w) {
-      const solo = !!t.mark || CUSTOM[t.ch] !== undefined;
-      if (!r || solo || r.solo || r.mode !== t.mode || r.hl !== t.hl) { r = { s: '', mode: t.mode, hl: t.hl, solo, mark: t.mark }; runs.push(r); }
-      r.s += t.ch;
-    }
-    let x = 0;
-    for (const r of runs) {
-      r.it = o.italic || (r.hl && o.hlItalic);
-      r.w = CUSTOM[r.s] !== undefined ? CUSTOM[r.s] * o.size : measure(r.s, o, r.mode !== 'n', r.it);
-      r.x = x; x += r.w;
-    }
-    return { runs, w: x };
-  });
-  const lines = []; let ln = { words: [], w: 0 };
-  for (const w of Ws) {
-    if (ln.words.length && o.maxW && ln.w + space + w.w > o.maxW) { lines.push(ln); ln = { words: [], w: 0 }; }
-    w.x = ln.words.length ? ln.w + space : 0; ln.words.push(w); ln.w = w.x + w.w;
-  }
-  lines.push(ln);
-  const g = G(parent);
-  const lh = (o.lh || 1.15) * o.size, wordEls = [];
-  lines.forEach((ln, li) => {
-    const x0 = o.anchor === 'middle' ? o.x - ln.w / 2 : o.anchor === 'end' ? o.x - ln.w : o.x;
-    const y = o.y + li * lh;
-    for (const w of ln.words) {
-      const wg = G(g); wordEls.push(wg); wg._cx = x0 + w.x + w.w / 2; wg._y = y;
-      for (const r of w.runs) {
-        const fill = r.hl ? (o.hl || o.fill) : o.fill, rx = x0 + w.x + r.x;
-        const sub = r.mode !== 'n', s = sub ? o.size * .62 : o.size;
-        const by = y + (r.mode === 'sub' ? o.size * .2 : r.mode === 'sup' ? -o.size * .4 : 0);
-        if (CUSTOM[r.s] !== undefined) glyph(wg, r.s, rx, by, s, o.weight || 600, fill);
-        else el('text', { x: rx, y: by, fill, 'font-family': 'Figtree', 'font-size': s, 'font-weight': o.weight || 600,
-          'font-style': r.it ? 'italic' : 'normal', 'letter-spacing': o.ls || 0, text: r.s }, wg);
-        if (r.mark === 'dot') el('circle', { cx: rx + r.w / 2 + (r.it ? s * .08 : 0), cy: by - s * .9, r: s * .075, fill: o.dotFill || fill }, wg);
-      }
-    }
-  });
-  return { g, words: wordEls, w: Math.max(...lines.map(l => l.w)) };
-}
-function glyph(p, g, x, y, s, wt, fill) {
-  const m = y - s * .33, sw = s * .055 * (wt / 500) + 1; let d = '';
-  if (g === '≈') { for (const off of [-.09, .09]) { const yy = m + off * s, a = x + .08 * s; d += `M${a} ${yy + .02 * s} C${a + .1 * s} ${yy - .08 * s} ${a + .18 * s} ${yy - .06 * s} ${a + .23 * s} ${yy} S${a + .36 * s} ${yy + .08 * s} ${a + .46 * s} ${yy - .02 * s} `; } }
-  if (g === '→') d = `M${x + .08 * s} ${m} H${x + .8 * s} M${x + .58 * s} ${m - .2 * s} L${x + .8 * s} ${m} L${x + .58 * s} ${m + .2 * s}`;
-  el('path', { d, fill: 'none', stroke: fill, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, p);
-}
-
-/* ============================================================ scene graph */
-const defs = el('defs', {}, svg);
-defs.innerHTML = `
-  <radialGradient id="glowW"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-  <radialGradient id="glowG"><stop offset="0" stop-color="${K.bg}" stop-opacity=".45"/><stop offset="1" stop-color="${K.bg}" stop-opacity="0"/></radialGradient>
-  <filter id="blurV" x="-20%" y="-60%" width="140%" height="220%"><feGaussianBlur id="blurVs" stdDeviation="0 0"/></filter>
-  <filter id="blurT" x="-10%" y="-40%" width="120%" height="180%"><feGaussianBlur id="blurTs" stdDeviation="0"/></filter>
-  <clipPath id="clipHookA"><rect x="0" y="0" width="1080" height="372"/></clipPath>
-  <clipPath id="clipTitle"><rect x="-4000" y="-4000" width="9000" height="5030"/></clipPath>
-  <clipPath id="clipPay"><rect x="0" y="0" width="1080" height="990"/></clipPath>
-`;
-const bgRect = el('rect', { x: 0, y: 0, width: W, height: H, fill: K.deep }, svg);
-const cam = G(svg);                 // camera (follow, zoom, shake)
-const hook = G(cam);
-const graph = G(cam, { opacity: 0 });
-const line = el('line', { x1: 540, y1: 1500, x2: 540, y2: 1500, stroke: K.white, 'stroke-width': 8, 'stroke-linecap': 'round' }, cam);
-const dotG = G(cam);
-el('circle', { r: 70, fill: 'url(#glowW)' }, dotG);
-const dotC = el('circle', { r: 17, fill: K.white }, dotG);
-const zoomG = G(cam);                // the name scene zooms into the O
-const title = G(zoomG, { opacity: 0 });
-const heart = G(cam, { opacity: 0 });
-const test = G(cam, { opacity: 0 });
-const pay = G(cam, { opacity: 0 });
-const barEl = el('rect', { x: 280, y: -80, width: 520, height: 28, fill: K.bg }, zoomG);
-const spark = G(cam);
-const fade = el('rect', { x: 0, y: 0, width: W, height: H, fill: K.deep, opacity: 0 }, svg);
-
-/* ---- beat 1: hook */
-const hookA = G(hook, { 'clip-path': 'url(#clipHookA)' });
-const tA = T(hookA, 'Your body has a', { x: 540, y: 346, size: 92, weight: 700, fill: K.white, anchor: 'middle' });
-const tB = T(hook, 'ceiling.', { x: 540, y: 576, size: 250, weight: 900, italic: true, fill: K.bg, anchor: 'middle' });
-tB.g.setAttribute('filter', 'url(#blurT)');
-const ring = el('circle', { cx: 540, cy: 658, r: 20, fill: 'none', stroke: K.white, 'stroke-width': 6, opacity: 0 }, cam);
-const sparks = [...Array(12)].map(() => el('circle', { r: 5, fill: K.bp, opacity: 0 }, cam));
-
-/* ---- beat 2: the curve */
-const X = p => 120 + p * 860, FY = p => smin(.05 + 1.08 * p, .92, 30), Y = p => 1380 - FY(p) * 800;
-const xAxis = el('line', { x1: 540, x2: 540, y1: 1380, y2: 1380, stroke: K.white, 'stroke-width': 3, opacity: .5 }, graph);
-const yAxis = el('line', { x1: 120, x2: 120, y1: 1380, y2: 1380, stroke: K.white, 'stroke-width': 3, opacity: .5 }, graph);
-const labs = G(graph, { opacity: 0 });
-T(labs, 'EFFORT', { x: 980, y: 1432, size: 26, weight: 800, fill: K.bp, anchor: 'end', ls: 5 });
-const yl = G(labs, { transform: 'translate(88 660) rotate(-90)' });
-T(yl, 'OXYGEN USED', { x: 0, y: 0, size: 26, weight: 800, fill: K.bp, anchor: 'end', ls: 5 });
-const curve = el('path', { d: '', fill: 'none', stroke: K.white, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, graph);
-const w1 = T(graph, 'Push harder,', { x: 262, y: 1336, size: 58, weight: 800, fill: K.white });
-const w2 = T(graph, 'use more oxygen…', { x: 560, y: 1012, size: 58, weight: 800, fill: K.white });
-const w3 = T(cam, 'until you can’t.', { x: 540, y: 572, size: 112, weight: 900, italic: true, fill: K.bg, anchor: 'middle' });
-const nameIn = T(cam, 'That limit has a name:', { x: 540, y: 420, size: 64, weight: 700, fill: K.white, anchor: 'middle' });
-
-/* ---- beat 3: the name */
-const TB = 1000, BIG = 280;
-const titleClip = G(title, { 'clip-path': 'url(#clipTitle)' });
-const pieces = [];
-let O_STROKE, pieceCx;
-{
-  const fV = { size: BIG, weight: 800 }, fS = { size: BIG * .5, weight: 800 }, fM = { size: BIG * .5, weight: 600 };
-  const wV = measure('V', fV), wO = measure('O', fV), w2_ = measure('2', fS), wM = measure('max', fM, false, true);
-  let x = 540 - (wV + wO + w2_ + wM + 12) / 2;
-  const mk = (s, o, xx, dy, fill, it) => { const t = el('text', { x: xx, y: TB + dy, fill, 'font-family': 'Figtree', 'font-size': o.size, 'font-weight': o.weight, 'font-style': it ? 'italic' : 'normal', text: s }, titleClip); return t; };
-  const xV = x; pieces.push([mk('V', fV, x, 0, K.bg)]); x += wV;
-  const xO = x; const pO = mk('O', fV, x, 0, K.bg); x += wO;
-  const p2 = mk('2', fS, x, BIG * .16, K.bg); x += w2_ + 12;
-  pieces.push([pO, p2]);
-  const xM = x; pieces.push([mk('max', fM, x, BIG * .16, K.white, true)]);
-  pieceCx = [xV + wV / 2, (xO + x - 12) / 2, xM + wM / 2];
-  O_STROKE = [xO + BIG * .09, TB - BIG * .36];
-}
-const vdot = el('circle', { cx: pieceCx[0], cy: TB - BIG * .83, r: BIG * .062, fill: K.bp, opacity: 0 }, title);
-const vring = el('circle', { cx: pieceCx[0], cy: TB - BIG * .83, r: 10, fill: 'none', stroke: K.bp, 'stroke-width': 4, opacity: 0 }, title);
-const decode = [['Volume', 'per minute'], ['of oxygen', 'used by your body'], ['at maximum', 'effort']].map(([a, b], i) => {
-  const g = G(title, { opacity: 0 });
-  el('path', { d: `M${pieceCx[i] - 12} 1068 h24 l-12 -16 Z`, fill: K.bp }, g);
-  T(g, a, { x: pieceCx[i], y: 1122, size: 44, weight: 800, fill: K.bp, anchor: 'middle' });
-  T(g, b, { x: pieceCx[i], y: 1166, size: 32, weight: 600, fill: K.white, anchor: 'middle' });
-  return g;
-});
-
-/* ---- beat 4: the heart */
-const HC = [540, 760];
-const rings = [0, 1].map(() => el('circle', { cx: HC[0], cy: HC[1], r: 210, fill: 'none', stroke: K.deep, 'stroke-width': 6, opacity: 0 }, heart));
-const o2 = [...Array(8)].map(() => { const g = G(heart, { opacity: 0 }); el('circle', { r: 13, fill: K.deep }, g); el('circle', { cx: 18, r: 13, fill: K.deep }, g); return g; });
-const heartC = el('circle', { cx: HC[0], cy: HC[1], r: 210, fill: K.deep }, heart);
-const hA1 = T(heart, 'Your heart pumps', { x: 540, y: 1196, size: 76, weight: 800, fill: K.deep, anchor: 'middle' });
-const hA2 = T(heart, 'oxygen to your muscles.', { x: 540, y: 1286, size: 76, weight: 800, fill: K.deep, anchor: 'middle' });
-const hB1 = T(heart, 'How much it can pump', { x: 540, y: 1178, size: 62, weight: 700, fill: K.deep, anchor: 'middle' });
-const hB2 = T(heart, 'usually sets the limit.', { x: 540, y: 1300, size: 96, weight: 900, italic: true, fill: K.deep, anchor: 'middle' });
-const hq = { s: 0 };
-
-/* ---- beat 5: breath by breath */
-const TX = u => lerp(110, 980, u), TY = v => 1330 - v / .95 * 560;
-const tAx = el('path', { d: `M110 760 V1330 H980`, fill: 'none', stroke: K.white, 'stroke-width': 3, opacity: .45 }, test);
-const tl1 = T(test, 'Measured', { x: 100, y: 440, size: 104, weight: 800, fill: K.white });
-const tl2 = T(test, 'breath by breath.', { x: 100, y: 556, size: 104, weight: 900, italic: true, fill: K.bg });
-const tLab = G(test);
-T(tLab, 'TIME  →  HARDER EVERY MINUTE', { x: 980, y: 1380, size: 22, weight: 800, fill: K.bp, anchor: 'end', ls: 3 });
-const tyl = G(tLab, { transform: 'translate(78 760) rotate(-90)' });
-T(tyl, 'OXYGEN USED', { x: 0, y: 0, size: 22, weight: 800, fill: K.bp, anchor: 'end', ls: 3 });
-const BR = []; { const r = rng(21); for (let i = 0; i < 96; i++) { const u = i / 95; BR.push([u, smin(.1 + .95 * u, .8, 22) + (r() + r() + r() - 1.5) * .05]); } }
-const brDots = BR.map(([u, v]) => el('circle', { cx: TX(u), cy: TY(v), r: 7, fill: K.bp, opacity: 0 }, test));
-const trend = el('path', { d: '', fill: 'none', stroke: K.white, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, test);
-const tHead = el('circle', { r: 12, fill: K.white, opacity: 0 }, test);
-const vmaxLab = T(test, 'V̇O_{2}max', { x: 980, y: 800, size: 56, weight: 900, fill: K.bg, anchor: 'end', dotFill: K.bg });
-const tau = { v: 0 };
-
-/* ---- beat 6: payoff */
-const payTop = G(pay);
-const payClip = G(payTop, { 'clip-path': 'url(#clipPay)' });
-const pFind = T(payClip, 'Find your ceiling.', { x: 540, y: 962, size: 104, weight: 800, fill: K.bg, anchor: 'middle' });
-const pRaise = T(pay, 'Then raise it.', { x: 540, y: 950, size: 104, weight: 800, italic: true, fill: K.white, anchor: 'middle' });
-const logo = el('image', { href: 'assets/logo-white.png', x: 540 - 180, y: 1160, width: 360, height: 360 / 2.752, opacity: 0 }, pay);
-
-/* ============================================================ timeline (cut to motion/tools/soundtrack.py) */
-const dot = { x: 540, y: 1500, sx: 1, sy: 1, o: 0 };
-const b = { x: 280, y: -80, w: 520, h: 28, flex: 1 };
-const sh = { v: 0 };
-const cp = { p: 0 };
-const ax = { l: 540, r: 540, top: 1380 };
-const tl = gsap.timeline({ paused: true, onUpdate: () => fx(tl.time()) });
-tl.set({}, {}, DUR);
-const S = (t, target, vars) => tl.set(target, vars, t);
-const A = (t, target, vars) => tl.to(target, vars, t);
-const F = (t, target, from, to) => tl.fromTo(target, from, to, t);
-const hit = (t, v = 1) => { S(t, sh, { v }); A(t, sh, { v: 0, duration: .45, ease: 'power2.out' }); };
-
-// 1 · HOOK — a line of oxygen rises and hits the ceiling (impact on 0.95 s)
-A(0, dot, { o: 1, duration: .12 });
-A(.05, dot, { sx: 1.4, sy: .6, duration: .26, ease: 'power2.out' });                 // anticipation
-A(.33, dot, { y: 675, duration: .62, ease: 'expo.in' });                             // launch
-A(.33, dot, { sx: .7, sy: 1.7, duration: .25, ease: 'power2.in' });                  // stretch
-A(.45, b, { y: 630, duration: .5, ease: 'power3.in' });                              // ceiling drops
-S(.95, dot, { sx: 1.9, sy: .45 }); A(1.0, dot, { sx: 1, sy: 1, duration: .6, ease: 'elastic.out(1, .35)' });
-S(.95, b, { flex: 2.4 }); A(.95, b, { flex: 1, duration: .7, ease: 'elastic.out(1, .3)' });
-hit(.95, 1);
-S(.95, ring, { opacity: 1, attr: { r: 20 } }); A(.95, ring, { attr: { r: 300 }, opacity: 0, duration: .7, ease: 'power2.out' });
-sparks.forEach((s, i) => {
-  const a = Math.PI * (.08 + .84 * i / 11), d = 140 + (i % 3) * 70;
-  S(.95, s, { opacity: 1, attr: { cx: 540, cy: 668 } });
-  A(.95, s, { attr: { cx: 540 + Math.cos(a) * d * 1.6, cy: 668 + Math.sin(a) * d }, opacity: 0, duration: .6 + (i % 3) * .1, ease: 'power2.out' });
-});
-F(1.15, tA.words, { y: 110 }, { y: 0, duration: .55, stagger: .06, ease: 'expo.out' });
-S(1.72, tB.g, { opacity: 1, scale: 1.8, svgOrigin: '540 520' }); S(0, tB.g, { opacity: 0 });
-A(1.72, tB.g, { scale: 1, svgOrigin: '540 520', duration: .28, ease: 'power4.in' });
-S(1.72, '#blurTs', { attr: { stdDeviation: 14 } }); A(1.9, '#blurTs', { attr: { stdDeviation: 0 }, duration: .1 });
-hit(2.0, .55);
-A(3.45, tA.words, { y: -140, opacity: 0, duration: .4, stagger: .03, ease: 'power3.in' });
-A(3.5, tB.g, { y: -260, opacity: 0, duration: .42, ease: 'power3.in' });
-
-// 2 · THE CURVE — push harder, use more oxygen… until you can’t
-A(4.0, dot, { y: 1380, duration: .45, ease: 'power2.in' });
-S(4.45, dot, { sx: 1.6, sy: .6 }); A(4.47, dot, { sx: 1, sy: 1, duration: .45, ease: 'elastic.out(1, .4)' });
-S(4.45, line, { opacity: 0 });
-A(4.0, b, { x: 60, w: 960, y: 600, duration: .7, ease: 'power3.inOut' });
-S(4.4, graph, { opacity: 1 });
-A(4.45, ax, { l: 120, r: 980, duration: .5, ease: 'expo.out' });
-A(4.65, ax, { top: 650, duration: .55, ease: 'expo.out' });
-A(4.5, dot, { x: 120, duration: .42, ease: 'power3.inOut' });
-F(4.9, labs, { opacity: 0 }, { opacity: 1, duration: .3 });
-A(4.95, cp, { p: .8, duration: 2.95, ease: 'power2.in' });
-A(7.9, cp, { p: 1, duration: .9, ease: 'power2.out' });
-F(5.15, w1.words, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' });
-F(6.55, w2.words, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, stagger: .08, ease: 'back.out(2)' });
-F(8.15, w3.g, { opacity: 0, scale: 1.7, svgOrigin: '540 530' }, { opacity: 1, scale: 1, svgOrigin: '540 530', duration: .25, ease: 'power4.in' });
-hit(8.4, .7);
-F(9.25, nameIn.words, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .4, stagger: .06, ease: 'power3.out' });
-
-// 3 · THE NAME — drop on 10.0 s; the ceiling becomes the underline
-A(9.92, graph, { scaleY: 0, opacity: 0, svgOrigin: '540 1380', duration: .35, ease: 'power3.in' });
-A(9.92, dot, { o: 0, duration: .2 });
-A(9.9, w3.g, { y: 430, opacity: 0, duration: .5, ease: 'power3.in' });
-A(9.9, b, { x: 110, w: 860, y: 1030, h: 24, duration: .55, ease: 'power4.inOut' });
-A(10.0, nameIn.g, { opacity: 0, y: -40, duration: .35, ease: 'power2.in' });
-S(10.2, title, { opacity: 1 });
-pieces.forEach((ps, i) => F(10.3 + i * .08, ps, { y: BIG * 1.2 }, { y: 0, duration: .7, ease: 'back.out(1.4)' }));
-F(10.85, vdot, { opacity: 0, attr: { cy: TB - BIG * .83 - 360 } }, { opacity: 1, attr: { cy: TB - BIG * .83 }, duration: .5, ease: 'bounce.out' });
-S(11.3, vring, { opacity: 1, attr: { r: 20 } }); A(11.3, vring, { opacity: 0, attr: { r: 90 }, duration: .6, ease: 'power2.out' });
-[11.4, 12.3, 13.2].forEach((t, i) => {
-  pieces.forEach((ps, j) => A(t, ps, { opacity: j === i ? 1 : .22, duration: .25 }));
-  A(t, vdot, { opacity: i === 0 ? 1 : .22, duration: .25 });
-  F(t, decode[i], { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .4, ease: 'back.out(2)' });
-});
-pieces.forEach(ps => A(14.1, ps, { opacity: 1, duration: .25 })); A(14.1, vdot, { opacity: 1, duration: .25 });
-
-// 4 · THE HEART — zoom through the O into a green field; the heart pumps on the beat
-A(14.75, zoomG, { scale: 42, svgOrigin: `${O_STROKE[0]} ${O_STROKE[1]}`, duration: .55, ease: 'expo.in' });
-S(15.3, bgRect, { attr: { fill: K.bg } }); S(15.3, zoomG, { opacity: 0, scale: 1 }); S(15.3, heart, { opacity: 1 });
-F(15.32, hq, { s: 0 }, { s: 1, duration: .55, ease: 'back.out(1.8)' });
-F(16.0, hA1.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
-F(16.25, hA2.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
-A(18.0, [hA1.g, hA2.g], { opacity: 0, y: -50, duration: .3, ease: 'power2.in' });
-F(18.3, hB1.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .45, stagger: .06, ease: 'expo.out' });
-F(18.75, hB2.g, { opacity: 0, scale: 1.6, svgOrigin: '540 1270' }, { opacity: 1, scale: 1, svgOrigin: '540 1270', duration: .25, ease: 'power4.in' });
-A(20.85, hq, { s: 1.25, duration: .1, ease: 'power2.out' });
-A(20.95, hq, { s: 12, duration: .45, ease: 'expo.in' });
-A(20.9, [hB1.g, hB2.g], { opacity: 0, duration: .2 });
-
-// 5 · BREATH BY BREATH — back to Deep Purple; the curve builds from breaths and hits the ceiling
-S(21.4, bgRect, { attr: { fill: K.deep } }); S(21.4, heart, { opacity: 0 }); S(21.4, test, { opacity: 1 });
-S(21.4, title, { opacity: 0 }); S(24.74, zoomG, { opacity: 1 });
-F(21.55, tl1.words, { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: .5, ease: 'expo.out' });
-F(21.8, tl2.words, { y: 70, opacity: 0 }, { y: 0, opacity: 1, duration: .5, stagger: .07, ease: 'expo.out' });
-F(21.5, tAx, { opacity: 0 }, { opacity: .45, duration: .3 });
-F(21.5, tLab, { opacity: 0 }, { opacity: 1, duration: .3 });
-F(22.3, tau, { v: 0 }, { v: 1, duration: 2.4, ease: 'none' });
-S(24.75, b, { x: TX(.64), w: 980 - TX(.64), y: -80, h: 18, flex: 1 });
-A(24.75, b, { y: TY(.845) - 20, duration: .25, ease: 'power4.in' });
-S(25.0, b, { flex: 2 }); A(25.0, b, { flex: 1, duration: .6, ease: 'elastic.out(1, .3)' });
-hit(25.0, .8);
-F(25.1, vmaxLab.words, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' });
-
-// 6 · PAYOFF — find your ceiling, then raise it; ends on the opening ground so the reel loops
-A(26.0, [test], { opacity: 0, y: 60, duration: .4, ease: 'power2.in' });
-A(26.0, b, { x: 190, w: 700, y: 1000, h: 24, duration: .55, ease: 'power4.inOut' });
-S(26.3, pay, { opacity: 1 });
-F(26.35, pFind.words, { y: 130 }, { y: 0, duration: .55, stagger: .07, ease: 'expo.out' });
-S(26.6, dot, { x: 540, y: 1500, sx: 1, sy: 1, o: 0 }); S(26.6, line, { opacity: 1 });
-A(26.6, dot, { o: 1, sx: 1.4, sy: .6, duration: .12 });
-A(26.72, dot, { y: 1041, sx: .7, sy: 1.7, duration: .28, ease: 'expo.in' });
-S(27.0, dot, { sx: 1.8, sy: .5 }); A(27.02, dot, { sx: 1, sy: 1, duration: .4, ease: 'elastic.out(1, .4)' });
-S(27.0, b, { flex: 2 }); A(27.0, b, { flex: 1, duration: .6, ease: 'elastic.out(1, .3)' });
-A(27.0, b, { y: 800, duration: .8, ease: 'expo.out' });
-hit(27.0, .6);
-A(27.5, [line], { opacity: 0, duration: .3 }); A(27.5, dot, { o: 0, duration: .3 });
-F(27.45, pRaise.words, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, stagger: .08, ease: 'expo.out' });
-F(28.0, logo, { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .6, ease: 'power2.out' });
-A(29.3, fade, { opacity: 1, duration: .7, ease: 'power1.inOut' });
-
-/* ============================================================ per-frame drawing */
-const grainCv = document.getElementById('grain'), gctx = grainCv.getContext('2d');
-const GRAIN = []; { const r = rng(3); for (let k = 0; k < 6; k++) { const id = gctx.createImageData(360, 640); for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - .5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; } GRAIN.push(id); } }
-let lastG = -1;
+const h = (i, k = 0) => { const s = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return s - Math.floor(s); };
+const vn = x => { const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f); return lerp(h(i, 91), h(i + 1, 91), u); };
+const frac = x => x - Math.floor(x);
 function beatEnv(t, t0) { const m = ((t - t0) % .5 + .5) % .5; return [Math.exp(-Math.pow(m / .06, 2)), .55 * Math.exp(-Math.pow((m - .18) / .05, 2))]; }
-function fx(t) {
-  const f = Math.round(t * FPS), gi = f % GRAIN.length;
-  if (gi !== lastG) { gctx.putImageData(GRAIN[gi], 0, 0); lastG = gi; }
-  // camera: follow the dot up the curve, then settle
-  const fol = io(P(t, 4.9, 5.6)) * (1 - io(P(t, 7.95, 8.9)));
-  const p = cp.p, px = X(p), py = Y(p);
-  const cx = lerp(540, px + 90, fol), cy = lerp(960, py - 40, fol), z = 1 + .35 * fol;
-  const ox = Math.sin(t * 97) * 16 * sh.v, oy = Math.cos(t * 83) * 16 * sh.v;
-  cam.setAttribute('transform', `translate(${540 + ox} ${960 + oy}) scale(${z}) translate(${-cx} ${-cy})`);
-  // dot: tweened in the hook, riding the curve afterwards
-  let dx = dot.x, dy = dot.y;
-  if (t >= 4.95 && t < 10.2) { dx = px; dy = py; }
-  if (t >= 27.0 && t < 28) dy = b.y + b.h + 17;   // the dot keeps pushing the ceiling up
-  dotG.setAttribute('transform', `translate(${dx} ${dy}) scale(${dot.sx} ${dot.sy})`);
-  dotG.setAttribute('opacity', dot.o);
-  line.setAttribute('x2', dx); line.setAttribute('y2', dy);
-  // the ceiling
-  const hh = b.h * b.flex;
-  barEl.setAttribute('x', b.x); barEl.setAttribute('width', b.w); barEl.setAttribute('y', b.y - (hh - b.h) / 2); barEl.setAttribute('height', hh);
-  // axes + curve
-  xAxis.setAttribute('x1', ax.l); xAxis.setAttribute('x2', ax.r); yAxis.setAttribute('y2', ax.top);
-  if (t >= 4.9 && t < 10.4) {
-    let d = ''; for (let q = 0; q <= p + 1e-6; q += .006) d += (d ? 'L' : 'M') + X(q).toFixed(1) + ' ' + Y(q).toFixed(1);
-    curve.setAttribute('d', d);
+
+const LIME = [.83, .94, .44], VIOLET = [.66, .45, 1.0], WHITE = [1, 1, 1], PINK = [1.0, .45, .85];
+const mix3 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+
+/* ================================================================ story state (all pure functions of t) */
+// impacts: time, world x, y, strength — drive shake, shockwaves, flashes and chromatic aberration
+const IMPACTS = [[.95, 540, 648, 1], [2.0, 540, 500, .45], [8.4, 540, 560, .45], [10.0, 540, 900, .7], [15.3, 540, 960, 1], [21.25, 540, 760, 1], [25.0, 800, 803, .9], [27.0, 540, 1012, .9]];
+const FLASH = { 15.3: .6, 21.25: .3 };
+
+// head of the oxygen curve (0..1)
+const headP = t => (t < 4.95 ? 0 : t < 7.9 ? .8 * E.inQ(P(t, 4.95, 7.9)) : .8 + .2 * E.outQ(P(t, 7.9, 8.8)));
+const CX = s => 120 + s * 860, CFY = s => smin(.05 + 1.08 * s, .92, 30), CY = s => 1380 - CFY(s) * 800;
+
+function camAt(t) {
+  let x = 540, y = 960, z = 1, r = 0;
+  // follow the oxygen up the curve
+  const fol = E.ioC(P(t, 4.9, 5.6)) * (1 - E.ioC(P(t, 7.95, 8.9)));
+  const p = headP(t);
+  x = lerp(x, CX(p) + 90, fol); y = lerp(y, CY(p) - 40, fol); z = lerp(1, 1.34, fol); r = -.035 * fol;
+  // freeze: slow push while time stops
+  z *= 1 + .05 * E.ioC(P(t, 8.45, 9.95)) * (1 - P(t, 9.95, 10.05));
+  // the name: slow push, then dive through the O
+  if (t >= 10 && t < 15.3) {
+    z *= 1 + .06 * E.ioC(P(t, 10.8, 14.7));
+    const e = E.inE(P(t, 14.75, 15.3));
+    x = lerp(x, O_STROKE[0], E.outC(P(t, 14.75, 15.3))); y = lerp(y, O_STROKE[1], E.outC(P(t, 14.75, 15.3)));
+    z = lerp(z, 44, e);
   }
-  // friction sparks while the dot scrapes the ceiling
-  while (spark.firstChild) spark.firstChild.remove();
-  if (t > 7.85 && t < 8.85) {
-    const r = rng(f * 13 + 7);
-    for (let k = 0; k < 7; k++) { const a = r(); el('circle', { cx: px - 20 - a * 90, cy: py - 12 + (r() - .5) * 20 - a * 30, r: 2 + r() * 4, fill: r() < .5 ? K.bg : K.white, opacity: (1 - a) * (1 - P(t, 8.5, 8.85)) }, spark); }
+  // the heart: gentle float and roll
+  if (t >= 15.3 && t < 21.3) { y += Math.sin(t * .9) * 10; r = .03 * Math.sin(t * .6); z = 1 + .04 * E.ioC(P(t, 15.3, 21)); }
+  // the test: slow push
+  if (t >= 21.3 && t < 26) z = 1 + .05 * E.ioC(P(t, 21.3, 26));
+  return { x, y, z, r };
+}
+function shakeAt(t) {
+  let sx = 0, sy = 0;
+  IMPACTS.forEach(([ti, , , a], k) => { const age = t - ti; if (age < 0 || age > .6) return; const e = a * Math.exp(-age * 9) * 20; sx += Math.sin(age * 71 + k) * e; sy += Math.cos(age * 63 + k * 2) * e; });
+  return [sx, sy];
+}
+function ceilAt(t) {
+  let x0 = 280, x1 = 800, y = -80, th = 13, a = 1;
+  if (t < .45) a = 0;
+  else if (t < .95) y = lerp(-80, 648, E.inC(P(t, .45, .95)));
+  else if (t < 4.0) y = 648;
+  else if (t < 9.9) { const e = E.ioC(P(t, 4, 4.7)); x0 = lerp(280, 60, e); x1 = lerp(800, 1020, e); y = lerp(648, 612, e); }
+  else if (t < 15.3) { const e = E.ioQ5(P(t, 9.9, 10.45)); x0 = lerp(60, 110, e); x1 = lerp(1020, 970, e); y = lerp(612, 1030, e); th = lerp(13, 11, e); }
+  else if (t < 24.75) a = 0;
+  else if (t < 26) { x0 = 700; x1 = 980; th = 10; y = lerp(-80, 803, E.inC(P(t, 24.75, 25))); }
+  else { const e = E.ioQ5(P(t, 26, 26.55)); x0 = lerp(700, 190, e); x1 = lerp(980, 890, e); th = lerp(10, 13, e); y = lerp(803, 1012, e); y = lerp(y, 812, E.elastic(P(t, 27, 28.1), .45)); a = 1 - P(t, 29.3, 29.9); }
+  // the ceiling flexes when something hits it
+  for (const [ti, , , s] of IMPACTS) { const age = t - ti; if (age >= 0 && age < .8 && ti !== 2.0 && ti !== 8.4 && ti !== 15.3 && ti !== 21.25) th *= 1 + 1.3 * s * Math.exp(-age * 7) * Math.cos(age * 30); }
+  return { x0, x1, y, th, a };
+}
+function photonAt(t) {
+  let x = 540, y = 1500, sx = 1, sy = 1, a = 0;
+  if (t < 4.95) {
+    a = P(t, 0, .12);
+    if (t < .33) { const e = E.outQ(P(t, .05, .31)); sx = lerp(1, 1.4, e); sy = lerp(1, .6, e); }
+    else if (t < .95) { const e = E.inE(P(t, .33, .95)); y = 1500 - 831 * e; sx = .7; sy = 1.7; }
+    else if (t < 4.0) { y = 669; const e = E.elastic(P(t, .95, 1.6), .35); sx = lerp(1.9, 1, e); sy = lerp(.45, 1, e); }
+    else if (t < 4.45) { y = 669 + 711 * E.inQ(P(t, 4, 4.45)); sy = 1.3; sx = .8; }
+    else { y = 1380; x = lerp(540, 120, E.ioC(P(t, 4.5, 4.92))); const e = E.elastic(P(t, 4.45, 4.95), .4); sx = lerp(1.6, 1, e); sy = lerp(.6, 1, e); }
+  } else if (t < 10.2) { const p = headP(t); x = CX(p); y = CY(p); a = 1 - P(t, 9.92, 10.12); }
+  else if (t >= 26.6 && t < 27.9) {
+    a = P(t, 26.6, 26.7) * (1 - P(t, 27.5, 27.8));
+    if (t < 27) { const e = E.inE(P(t, 26.72, 27)); y = 1500 - 467 * e; sx = t < 26.72 ? 1.4 : .7; sy = t < 26.72 ? .6 : 1.7; }
+    else { const c = ceilAt(t); y = c.y + 6.5 + 14; const e = E.elastic(P(t, 27, 27.4), .4); sx = lerp(1.8, 1, e); sy = lerp(.5, 1, e); }
   }
-  // heart
-  if (t >= 15.3 && t < 21.5) {
-    let s = hq.s;
-    if (t >= 16 && t < 20.85) { const [l, d] = beatEnv(t, 16); s *= 1 + .1 * l + .05 * d; }
-    heartC.setAttribute('r', 210 * s);
-    rings.forEach(r => r.setAttribute('opacity', 0)); o2.forEach(g => g.setAttribute('opacity', 0));
-    if (t >= 16 && t < 21.3) {
-      const k0 = Math.floor((t - 16) / .5);
-      for (let k = Math.max(0, k0 - 1); k <= k0 && k < 10; k++) {
-        const age = t - (16 + k * .5); if (age < 0 || age > 1) continue;
-        const r = rings[k % 2];
-        r.setAttribute('r', 210 + outC(age) * 760); r.setAttribute('opacity', (Math.pow(1 - age, 2) * .8).toFixed(3)); r.setAttribute('stroke-width', 2 + 8 * (1 - age));
-        if (age < .9) for (let j = 0; j < 4; j++) {
-          const g = o2[(k % 2) * 4 + j], a = Math.PI / 4 + j * Math.PI / 2 + k * .35, dist = 230 + outC(age / .9) * 700;
-          g.setAttribute('transform', `translate(${HC[0] + Math.cos(a) * dist} ${HC[1] + Math.sin(a) * dist}) rotate(${a * 57.3}) scale(${1 - age * .4})`);
-          g.setAttribute('opacity', (1 - age / .9).toFixed(3));
-        }
-      }
+  return { x, y, sx, sy, a };
+}
+function heartAt(t) {
+  if (t < 15.3 || t > 21.3) return { r: 0, beat: 0 };
+  let r = 210 * E.back(P(t, 15.32, 15.9), 1.8), beat = 0;
+  if (t >= 16 && t < 20.85) { const [l, d] = beatEnv(t, 16); beat = l + d; r *= 1 + .1 * l + .05 * d; }
+  r *= 1 + .25 * E.outQ(P(t, 20.85, 20.95));
+  r *= 1 - E.inC(P(t, 20.95, 21.25));
+  return { r: Math.max(0, r), beat };
+}
+const HC = [540, 760];
+
+/* ================================================================ text: the name's layout, sampled for the particles */
+const BIG = 280, TB = 1000;
+const VO = (() => {
+  const m = document.createElement('canvas').getContext('2d');
+  const fV = `800 ${BIG}px Figtree`, fS = `800 ${BIG * .5}px Figtree`, fM = `italic 600 ${BIG * .5}px Figtree`;
+  m.font = fV; const wV = m.measureText('V').width, wO = m.measureText('O').width;
+  m.font = fS; const w2 = m.measureText('2').width; m.font = fM; const wM = m.measureText('max').width;
+  let x = 540 - (wV + wO + w2 + wM + 12) / 2;
+  const P_ = [{ s: 'V', f: fV, x, y: TB, piece: 0, col: '#d4ef70' }];
+  const xO = x + wV; P_.push({ s: 'O', f: fV, x: xO, y: TB, piece: 1, col: '#d4ef70' }, { s: '2', f: fS, x: xO + wO, y: TB + BIG * .16, piece: 1, col: '#d4ef70' });
+  const xM = xO + wO + w2 + 12; P_.push({ s: 'max', f: fM, x: xM, y: TB + BIG * .16, piece: 2, col: '#ffffff' });
+  return { pieces: P_, dot: [x + wV / 2, TB - BIG * .83, BIG * .062], cx: [x + wV / 2, (xO + xM - 12) / 2, xM + wM / 2], bounds: [x, xO, xM, xM + wM], O: [xO + BIG * .09, TB - BIG * .36] };
+})();
+const O_STROKE = VO.O;
+const NS = 3200;   // oxygen particles
+const TARGETS = (() => {
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; for (const p of VO.pieces) { g.font = p.f; g.fillText(p.s, p.x, p.y); }
+  g.beginPath(); g.arc(VO.dot[0], VO.dot[1], VO.dot[2], 0, 7); g.fill();
+  const d = g.getImageData(0, 0, W, H).data, pts = [];
+  for (let y = 600; y < 1100; y += 3) for (let x = 60; x < 1020; x += 3) if (d[(y * W + x) * 4 + 3] > 140) pts.push([x, y]);
+  const out = [];
+  for (let i = 0; i < NS; i++) { const q = pts[Math.floor(h(i, 41) * pts.length)] || [540, 900]; const piece = q[0] < VO.bounds[1] ? 0 : q[0] < VO.bounds[2] ? 1 : 2; out.push([q[0] + (h(i, 42) - .5) * 2, q[1] + (h(i, 43) - .5) * 2, piece]); }
+  return out;
+})();
+
+/* ================================================================ particles */
+const MAXP = 6000, STRIDE = 10;
+const pbuf = new Float32Array(MAXP * STRIDE);
+let np = 0;
+function push(x0, y0, x1, y1, c, a, size, shape = 0) {
+  if (a <= .004 || np >= MAXP) return;
+  const o = np * STRIDE;
+  pbuf[o] = x0; pbuf[o + 1] = y0; pbuf[o + 2] = x1; pbuf[o + 3] = y1;
+  pbuf[o + 4] = c[0]; pbuf[o + 5] = c[1]; pbuf[o + 6] = c[2]; pbuf[o + 7] = a;
+  pbuf[o + 8] = size; pbuf[o + 9] = shape; np++;
+}
+const dot = (x, y, c, a, s, shape = 0) => push(x, y, x, y, c, a, s, shape);
+
+function streamPos(i, te, head, c) {
+  const u = frac(h(i, 1) + (.2 + .22 * h(i, 2)) * te * .9);
+  const s = u * head;
+  const x = CX(s), y = CY(s), x2 = CX(s + .003), y2 = CY(s + .003);
+  let tx = x2 - x, ty = y2 - y; const L = Math.hypot(tx, ty) || 1; tx /= L; ty /= L;
+  const width = 8 + 95 * s * s + 30 * s;
+  const off = (h(i, 3) - .5) * 2 * width * (.65 + .35 * Math.sin(te * 3 + h(i, 4) * 6.28));
+  let px = x - ty * off, py = y + tx * off;
+  const floor = c.y + c.th / 2 + 6;
+  if (py < floor + 30 && s > .6) py = floor + Math.abs(py - floor) * .35 + (h(i, 5) * 22);   // pressed flat under the ceiling
+  return [px, py, s, u];
+}
+const teAt = t => (t < 8.4 ? t : t < 10 ? 8.4 + (t - 8.4) * .035 : 8.456);
+
+function sparks(t, ti, x, y, n, seed, spread = [.12, .88], spd = [300, 1000]) {
+  const age = t - ti; if (age < 0 || age > 1.2) return;
+  for (let j = 0; j < n; j++) {
+    const ang = Math.PI * lerp(spread[0], spread[1], h(j, seed)), v = lerp(spd[0], spd[1], h(j, seed + 1)), k = 4 + 3 * h(j, seed + 2), life = .5 + .6 * h(j, seed + 3);
+    if (age > life) continue;
+    const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x + Math.cos(ang) * v * d, y + Math.sin(ang) * v * d + 700 * a * a]; };
+    const [x1, y1] = pos(age), [x0, y0] = pos(Math.max(0, age - .03));
+    push(x0, y0, x1, y1, h(j, seed + 4) < .5 ? LIME : WHITE, (1 - age / life) * .9, 2.5 + 3 * h(j, seed + 5));
+  }
+}
+
+function buildParticles(t) {
+  np = 0;
+  const cam = camAt(t), c = ceilAt(t);
+  // ambient dust with parallax
+  for (let i = 0; i < 520; i++) {
+    const z = .25 + .75 * h(i, 11);
+    const bx = h(i, 12) * 1400 - 160 + Math.sin(t * .35 + i) * 14 * z;
+    let by = h(i, 13) * 2400 - 240 - t * (6 + 22 * z); by = ((by + 240) % 2400 + 2400) % 2400 - 240;
+    const px = bx + (cam.x - 540) * (1 - z * .6), py = by + (cam.y - 960) * (1 - z * .6);
+    const tw = .6 + .4 * Math.sin(t * (1 + h(i, 14) * 3) + i);
+    dot(px, py, mix3(VIOLET, WHITE, h(i, 15) * .6), (.08 + .28 * z) * tw * (1 - .7 * P(t, 15.3, 15.6) * (1 - P(t, 21.2, 21.4))), (1.2 + 3 * z) / cam.z);
+  }
+  // the oxygen photon: comet core, glow and trail
+  const ph = photonAt(t);
+  if (ph.a > 0) {
+    // the laser line it rides up on
+    if ((t > .33 && t < 4.45) || (t > 26.72 && t < 27.8)) push(540, 1500, 540, ph.y, WHITE, .55 * ph.a, 3.2);
+    for (let k = 0; k < 14; k++) {
+      const a = photonAt(t - k * .012), b = photonAt(t - (k + 1) * .012);
+      if (a.a <= 0 || b.a <= 0) break;
+      push(b.x, b.y, a.x, a.y, mix3(WHITE, LIME, k / 14), .5 * (1 - k / 14) * ph.a, 11 * (1 - k / 16));
+    }
+    dot(ph.x, ph.y, LIME, .35 * ph.a, 75);
+    push(ph.x - 9 * ph.sx, ph.y, ph.x + 9 * ph.sx, ph.y, WHITE, ph.a, 12 * ph.sy);
+  }
+  sparks(t, .95, 540, 648 + 14, 90, 20);
+  sparks(t, 25.0, 840, 812, 70, 30);
+  sparks(t, 27.0, 540, 1024, 90, 40);
+
+  // oxygen stream up the curve, freezing at "until you can't"
+  if (t >= 4.95 && t < 10.0) {
+    const te = teAt(t), head = headP(t), frozen = t >= 8.4;
+    for (let i = 0; i < NS; i++) {
+      const [x, y, s, u] = streamPos(i, te, head, c);
+      if (u < .01) continue;
+      const [x0, y0] = frozen ? [x, y] : streamPos(i, te - .035, head, c);
+      const col = s > .72 ? mix3(WHITE, LIME, P(s, .72, .9)) : mix3(VIOLET, WHITE, s / .72);
+      push(x0, y0, x, y, col, (.1 + .34 * h(i, 6)) * P(u, .01, .06) * (frozen ? .9 : 1), 1.8 + 3.4 * h(i, 7) * (.5 + s));
     }
   }
-  // breath by breath
-  if (t >= 21.4 && t < 26.6) {
-    const u = tau.v;
-    brDots.forEach((e, i) => {
-      const age = (u - BR[i][0]) * 2.4;          // seconds since this breath appeared
-      const on = age >= 0 && t >= 22.3;
-      e.setAttribute('opacity', on ? .95 : 0);
-      e.setAttribute('r', on ? 7 + 9 * Math.max(0, 1 - age / .25) : 0);
-    });
-    let d = ''; for (let q = 0; q <= u + 1e-6; q += .005) d += (d ? 'L' : 'M') + TX(q).toFixed(1) + ' ' + TY(smin(.1 + .95 * q, .8, 22)).toFixed(1);
-    trend.setAttribute('d', d);
-    tHead.setAttribute('cx', TX(u)); tHead.setAttribute('cy', TY(smin(.1 + .95 * u, .8, 22))); tHead.setAttribute('opacity', u > 0 && u < 1 ? 1 : 0);
+  // the stream condenses into the word
+  if (t >= 10.0 && t < 15.3) {
+    const cc = ceilAt(9.99);
+    for (let i = 0; i < NS; i++) {
+      const [sx0, sy0] = streamPos(i, teAt(9.99), 1, cc), [tx, ty, piece] = TARGETS[i];
+      const d = .32 * (tx - 150) / 780 + .12 * h(i, 21);
+      const e = E.outE(P(t, 10.0 + d, 10.0 + d + .8));
+      const sw = Math.sin(Math.PI * e) * (h(i, 22) - .5) * 260;
+      const dx = tx - sx0, dy = ty - sy0, L = Math.hypot(dx, dy) || 1;
+      const shim = e >= 1 ? Math.sin(t * 5 + i) * 1.2 : 0;
+      const x = lerp(sx0, tx, e) - dy / L * sw + shim, y = lerp(sy0, ty, e) + dx / L * sw;
+      const ep = E.outE(P(t - .03, 10.0 + d, 10.0 + d + .8));
+      const x0 = lerp(sx0, tx, ep) - dy / L * Math.sin(Math.PI * ep) * (h(i, 22) - .5) * 260, y0 = lerp(sy0, ty, ep) + dx / L * Math.sin(Math.PI * ep) * (h(i, 22) - .5) * 260;
+      let a = .75, active = 1;
+      if (t >= 11.4 && t < 14.1) { const k = t < 12.3 ? 0 : t < 13.2 ? 1 : 2; active = piece === k ? 1.35 : .25; }
+      const arrive = 1 - P(t, 10.0 + d + .5, 10.0 + d + 1.0);
+      push(x0, y0, x, y, piece === 2 ? WHITE : mix3(LIME, WHITE, .25 * h(i, 23)), a * active * (1 - P(t, 15.25, 15.35)), 2 + 2.5 * h(i, 24) + 3 * arrive * (e > .6 ? 1 : 0));
+    }
   }
-  // payoff: “Find your ceiling.” rides on top of the bar
-  if (t >= 26) payTop.setAttribute('transform', `translate(0 ${(b.y - 1000).toFixed(2)})`);
+  // the heart pumps oxygen out along six vessels, surging on every beat
+  const hs = heartAt(t);
+  if (t >= 15.3 && t < 21.3) {
+    const surge = tt => { if (tt < 16) return 0; const k = Math.min(10, Math.floor((tt - 16) / .5)); const f = frac((tt - 16) / .5); return .11 * (k + (k < 10 ? E.outC(clamp(f / .35)) : 0)); };
+    const S = surge(t), S0 = surge(t - .03), imp = E.inC(P(t, 20.95, 21.25));
+    for (let i = 0; i < 2400; i++) {
+      const k = i % 6, base = -Math.PI / 2 + k * Math.PI / 3 + (h(i, 33) - .5) * .28, bend = (k % 2 ? 1 : -1) * .55;
+      const v = .13 + .1 * h(i, 31);
+      const s = frac(h(i, 30) + v * (t - 15.3) + S), s0 = frac(h(i, 30) + v * (t - .03 - 15.3) + S0);
+      const pos = ss => { const ang = base + bend * ss; const rr = Math.max(hs.r, 60) * .92 + ss * 1150; return [HC[0] + Math.cos(ang) * rr, HC[1] + Math.sin(ang) * rr]; };
+      let [x, y] = pos(s), [x0, y0] = s0 < s ? pos(s0) : [x, y];
+      x = lerp(x, HC[0], imp); y = lerp(y, HC[1], imp); x0 = lerp(x0, HC[0], imp); y0 = lerp(y0, HC[1], imp);
+      push(x0, y0, x, y, mix3(LIME, WHITE, h(i, 34) * .5), Math.pow(1 - s, 1.4) * .75 * P(t, 15.6, 16.2), 2.2 + 3.5 * h(i, 35));
+    }
+    // a pressure wave rides out on every beat
+    for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age < 0 || age > .9) continue; dot(HC[0], HC[1], mix3(PINK, WHITE, .3), (1 - age / .9) * .35, hs.r + 40 + age * 900, 1); }
+  }
+  // breath by breath: every breath lands as a pulse; the trend is drawn in light
+  if (t >= 21.3 && t < 26.6) {
+    const u = P(t, 22.3, 24.7), fadeOut = 1 - P(t, 26, 26.4);
+    const TX = v => lerp(110, 980, v), TY = v => 1330 - v / .95 * 560;
+    BR.forEach(([bu, bv], i) => {
+      const age = (u - bu) * 2.4; if (age < 0 || t < 22.3) return;
+      dot(TX(bu), TY(bv), mix3(VIOLET, WHITE, .45), .9 * fadeOut, 7 + 14 * Math.max(0, 1 - age / .2));
+      if (age < .45) dot(TX(bu), TY(bv), VIOLET, Math.pow(1 - age / .45, 2) * .45 * fadeOut, 10 + age * 120, 1);
+    });
+    let prev = null;
+    for (let q = 0; q <= u + 1e-6; q += .004) { const pt = [TX(q), TY(smin(.1 + .95 * q, .8, 22))]; if (prev) push(prev[0], prev[1], pt[0], pt[1], WHITE, .9 * fadeOut, 3.5); prev = pt; }
+    if (prev && u > 0 && u < 1) { dot(prev[0], prev[1], LIME, .5, 55); dot(prev[0], prev[1], WHITE, 1, 13); }
+  }
+  // payoff: the ceiling is pushed up and oxygen erupts past it
+  if (t >= 27.0 && t < 29.9) {
+    const age = t - 27.05;
+    if (age >= 0) for (let i = 0; i < 1400; i++) {
+      const x0 = lerp(200, 880, h(i, 51)), ang = -Math.PI / 2 + (h(i, 52) - .5) * .9, v = 500 + 1500 * h(i, 53), k = 2.6 + 2 * h(i, 54), life = .7 + .9 * h(i, 55);
+      if (age > life) continue;
+      const pos = a => { const d = (1 - Math.exp(-k * a)) / k; return [x0 + Math.cos(ang) * v * d, 1005 + Math.sin(ang) * v * d - 40 * a]; };
+      const [x, y] = pos(age), [xa, ya] = pos(Math.max(0, age - .03));
+      push(xa, ya, x, y, h(i, 56) < .6 ? LIME : h(i, 56) < .85 ? WHITE : VIOLET, (1 - age / life) * .75 * (1 - P(t, 29.3, 29.9)), 2 + 3 * h(i, 57));
+    }
+  }
+  return cam;
+}
+const BR = []; { for (let i = 0; i < 96; i++) { const u = i / 95; BR.push([u, smin(.1 + .95 * u, .8, 22) + ((h(i, 61) + h(i, 62) + h(i, 63)) - 1.5) * .05]); } }
+
+/* ================================================================ kinetic type (Canvas2D → texture) */
+const tcv = document.createElement('canvas'), tx = tcv.getContext('2d');
+const layoutCache = new Map();
+function layout(str, font, ls) {
+  const key = str + '|' + font + '|' + ls; if (layoutCache.has(key)) return layoutCache.get(key);
+  tx.font = font; const chars = [...str], pos = [];
+  for (let i = 0; i <= chars.length; i++) pos.push(tx.measureText(chars.slice(0, i).join('')).width + ls * i);
+  const r = { chars, pos, w: pos[chars.length] - ls }; layoutCache.set(key, r); return r;
+}
+// draw a line of letters; o.letter(i, n) may return { dx, dy, s, a, w, rot }
+function type(str, x, y, o) {
+  const f = w => `${o.italic ? 'italic ' : ''}${Math.round(w)} ${o.size}px Figtree`;
+  const L = layout(str, f(o.weight), o.ls || 0);
+  const x0 = o.align === 'center' ? x - L.w / 2 : o.align === 'right' ? x - L.w : x;
+  L.chars.forEach((ch, i) => {
+    const p = o.letter ? o.letter(i, L.chars.length) : {};
+    const a = (o.alpha ?? 1) * (p.a ?? 1); if (a <= .003) return;
+    const cx = x0 + (L.pos[i] + L.pos[i + 1] - (o.ls || 0)) / 2;
+    tx.save(); tx.globalAlpha = a; tx.translate(cx + (p.dx || 0), y + (p.dy || 0));
+    if (p.rot) tx.rotate(p.rot); if (p.s && p.s !== 1) tx.scale(p.s, p.s);
+    tx.font = f(p.w ?? o.weight); tx.textAlign = 'center'; tx.fillStyle = o.fill; tx.fillText(ch, 0, 0); tx.restore();
+  });
+  return L.w;
+}
+const rise = (t, t0, st = .035, dur = .6, amt = 1) => (i) => { const e = E.outE(P(t, t0 + i * st, t0 + i * st + dur)); return { dy: (1 - e) * 90 * amt, a: clamp(e * 1.4), w: undefined }; };
+const exitUp = (t, t0, st = .02) => (i) => { const e = E.inC(P(t, t0 + i * st, t0 + i * st + .35)); return { dy: -e * 220, a: 1 - e }; };
+
+function drawText(t, cam, sh, RS) {
+  tx.setTransform(1, 0, 0, 1, 0, 0); tx.clearRect(0, 0, tcv.width, tcv.height);
+  const screen = () => tx.setTransform(RS, 0, 0, RS, sh[0] * RS, sh[1] * RS);
+  const world = () => { screen(); tx.translate(540, 960); tx.rotate(cam.r); tx.scale(cam.z, cam.z); tx.translate(-cam.x, -cam.y); };
+  tx.textBaseline = 'alphabetic';
+
+  // 1 · hook
+  if (t >= 1 && t < 4) {
+    world();
+    const out = exitUp(t, 3.45);
+    type('YOUR BODY HAS A', 540, 346, { size: 52, weight: 300, ls: 17, fill: '#fff', align: 'center', letter: i => { const r = rise(t, 1.12, .03, .6)(i), o = out(i); return { dy: r.dy + o.dy, a: r.a * o.a, w: lerp(300, 500, E.outC(P(t, 1.3 + i * .03, 2.2))) }; } });
+    const slam = P(t, 1.72, 2.0);
+    if (slam > 0) type('ceiling.', 540, 590, { size: 236, weight: 900, italic: true, fill: '#d4ef70', align: 'center', letter: i => {
+      const e = E.inC(slam), o = out(i), j = t > 2 && t < 2.35 ? Math.sin((t - 2) * 60 + i) * 10 * (1 - P(t, 2, 2.35)) : 0;
+      const breathe = t > 2.2 ? 8 * Math.sin((t - 2.2) * 6.28 * 2 - i * .5) : 0;
+      return { s: lerp(1.9, 1, e), a: clamp(slam * 3) * o.a, dy: j + o.dy * 1.2, w: lerp(300, 900, e) - Math.abs(breathe) * 6 };
+    } });
+  }
+  // 2 · the curve
+  if (t >= 5 && t < 10.3) {
+    world();
+    const gone = 1 - P(t, 9.92, 10.2);
+    tx.globalAlpha = 1;
+    // axes
+    tx.save(); tx.globalAlpha = .45 * P(t, 4.45, 4.9) * gone; tx.strokeStyle = '#fff'; tx.lineWidth = 2.5;
+    const ax = E.outE(P(t, 4.45, 4.95)), ay = E.outE(P(t, 4.65, 5.2));
+    tx.beginPath(); tx.moveTo(lerp(540, 120, ax), 1380); tx.lineTo(lerp(540, 980, ax), 1380); tx.moveTo(120, 1380); tx.lineTo(120, lerp(1380, 650, ay)); tx.stroke(); tx.restore();
+    type('EFFORT', 980, 1428, { size: 24, weight: 700, ls: 8, fill: '#b286ff', align: 'right', alpha: P(t, 4.9, 5.2) * gone });
+    tx.save(); tx.translate(90, 660); tx.rotate(-Math.PI / 2); type('OXYGEN USED', 0, 0, { size: 24, weight: 700, ls: 8, fill: '#b286ff', align: 'right', alpha: P(t, 4.9, 5.2) * gone }); tx.restore();
+    const pop = t0 => i => { const e = E.back(P(t, t0 + i * .03, t0 + i * .03 + .4), 2.2); return { dy: (1 - e) * 40, a: clamp(P(t, t0 + i * .03, t0 + i * .03 + .15)) * gone, w: lerp(300, 800, E.outC(P(t, t0 + i * .03, t0 + i * .03 + .5))) }; };
+    type('Push harder,', 262, 1336, { size: 60, weight: 800, fill: '#fff', letter: pop(5.15) });
+    type('use more oxygen…', 560, 1012, { size: 60, weight: 800, fill: '#fff', letter: pop(6.55) });
+    const sl = P(t, 8.15, 8.4);
+    if (sl > 0) type('until you can’t.', 540, 575, { size: 118, weight: 900, italic: true, fill: '#d4ef70', align: 'center', letter: i => {
+      const e = E.inC(sl), drop = E.inC(P(t, 9.9, 10.35));
+      return { s: lerp(1.8, 1, e), a: clamp(sl * 3) * (1 - drop), dy: drop * 430 + (t > 8.4 && t < 8.7 ? Math.sin((t - 8.4) * 70 + i) * 6 * (1 - P(t, 8.4, 8.7)) : 0), w: lerp(300, 900, e) };
+    } });
+  }
+  // “That limit has a name” (screen space, during the freeze)
+  if (t >= 9.2 && t < 10.4) { screen(); type('THAT LIMIT HAS A NAME', 540, 420, { size: 40, weight: 300, ls: 14, fill: '#fff', align: 'center', letter: i => { const r = rise(t, 9.25, .025, .5, .5)(i); return { dy: r.dy - E.inC(P(t, 10, 10.3)) * 60, a: r.a * (1 - P(t, 10, 10.3)) }; } }); }
+  // 3 · the name (crisp letters fade up inside the particle cloud)
+  if (t >= 10.3 && t < 15.3) {
+    world();
+    const on = E.outC(P(t, 10.55, 11.1)) * (1 - P(t, 15.25, 15.35));
+    const k = t >= 11.4 && t < 14.1 ? (t < 12.3 ? 0 : t < 13.2 ? 1 : 2) : -1;
+    for (const p of VO.pieces) { tx.globalAlpha = on * (k < 0 || k === p.piece ? .92 : .22); tx.font = p.f; tx.fillStyle = p.col; tx.textAlign = 'left'; tx.fillText(p.s, p.x, p.y); }
+    tx.globalAlpha = on * (k < 0 || k === 0 ? 1 : .3); tx.fillStyle = '#b286ff';
+    const dy = -360 * (1 - E.back(P(t, 10.85, 11.3), 2.5));
+    tx.beginPath(); tx.arc(VO.dot[0], VO.dot[1] + dy, VO.dot[2], 0, 7); tx.fill();
+    const labels = [['VOLUME', 'per minute'], ['OF OXYGEN', 'used by your body'], ['AT MAXIMUM', 'effort']];
+    labels.forEach(([a, b], i) => {
+      const t0 = [11.4, 12.3, 13.2][i];
+      const act = k < 0 || k === i ? 1 : .45;
+      type(a, VO.cx[i], 1108, { size: 34, weight: 800, ls: 5, fill: '#b286ff', align: 'center', letter: rise(t, t0, .02, .5, .5), alpha: act * (1 - P(t, 14.75, 15)) });
+      type(b, VO.cx[i], 1150, { size: 30, weight: 400, fill: '#fff', align: 'center', letter: rise(t, t0 + .1, .015, .5, .4), alpha: .85 * act * (1 - P(t, 14.75, 15)) });
+    });
+  }
+  // 4 · the heart
+  if (t >= 15.9 && t < 21.3) {
+    screen();
+    const [l, d] = t >= 16 && t < 20.85 ? beatEnv(t, 16) : [0, 0];
+    const outA = exitUp(t, 18.0, .012);
+    type('YOUR HEART PUMPS', 540, 1190, { size: 46, weight: 300, ls: 14, fill: '#fff', align: 'center', letter: i => { const r = rise(t, 16.0, .025)(i), o = outA(i); return { dy: r.dy + o.dy, a: r.a * o.a }; } });
+    type('oxygen to your muscles.', 540, 1282, { size: 70, weight: 800, fill: '#fff', align: 'center', letter: i => { const r = rise(t, 16.25, .02)(i), o = outA(i); return { dy: r.dy + o.dy, a: r.a * o.a, w: 800 + 100 * l }; } });
+    const gone = 1 - P(t, 20.9, 21.1);
+    type('HOW MUCH IT CAN PUMP', 540, 1170, { size: 40, weight: 300, ls: 12, fill: '#fff', align: 'center', alpha: gone, letter: rise(t, 18.3, .02) });
+    const sl = P(t, 18.75, 19.0);
+    if (sl > 0) type('usually sets the limit.', 540, 1296, { size: 104, weight: 900, italic: true, fill: '#d4ef70', align: 'center', alpha: gone, letter: i => ({ s: lerp(1.7, 1, E.inC(sl)) * (1 + .03 * l), a: clamp(sl * 3), w: lerp(300, 900, E.inC(sl)) - 180 * d }) });
+  }
+  // 5 · the test
+  if (t >= 21.4 && t < 26.5) {
+    screen();
+    const out = 1 - P(t, 26, 26.35);
+    type('MEASURED', 100, 430, { size: 56, weight: 300, ls: 20, fill: '#fff', alpha: out, letter: rise(t, 21.55, .03) });
+    type('breath by breath.', 100, 552, { size: 112, weight: 900, italic: true, fill: '#d4ef70', alpha: out, letter: i => { const r = rise(t, 21.8, .025)(i); return { ...r, w: lerp(300, 900, E.outC(P(t, 21.8 + i * .025, 22.4 + i * .025))) }; } });
+    tx.save(); tx.globalAlpha = .4 * P(t, 21.5, 22) * out; tx.strokeStyle = '#fff'; tx.lineWidth = 2.5;
+    tx.beginPath(); tx.moveTo(110, 760); tx.lineTo(110, 1330); tx.lineTo(980, 1330); tx.stroke(); tx.restore();
+    type('TIME · HARDER EVERY MINUTE', 980, 1376, { size: 22, weight: 700, ls: 6, fill: '#b286ff', align: 'right', alpha: P(t, 21.6, 22) * out });
+    tx.save(); tx.translate(80, 760); tx.rotate(-Math.PI / 2); type('OXYGEN USED', 0, 0, { size: 22, weight: 700, ls: 6, fill: '#b286ff', align: 'right', alpha: P(t, 21.6, 22) * out }); tx.restore();
+    const lp = P(t, 25.1, 25.4);
+    if (lp > 0) { tx.save(); tx.globalAlpha = lp * out; tx.translate(980, 770); const s = lerp(1.4, 1, E.outE(lp)); tx.scale(s, s);
+      tx.fillStyle = '#d4ef70'; tx.textAlign = 'right'; tx.font = '900 64px Figtree'; const wm = tx.measureText('max').width; tx.fillText('max', 0, 0);
+      tx.font = '900 40px Figtree'; const w2 = tx.measureText('2').width; tx.fillText('2', -wm - 2, 16);
+      tx.font = '900 64px Figtree'; const wO = tx.measureText('O').width, wV = tx.measureText('V').width; tx.fillText('O', -wm - w2 - 4, 0); tx.fillText('V', -wm - w2 - wO - 4, 0);
+      tx.beginPath(); tx.arc(-wm - w2 - wO - 4 - wV / 2, -58, 5.5, 0, 7); tx.fill(); tx.restore(); }
+  }
+  // 6 · payoff
+  if (t >= 26.2) {
+    world();
+    const c = ceilAt(t), fade = 1 - P(t, 29.3, 29.9);
+    tx.save(); tx.beginPath(); tx.rect(-2000, -2000, 5000, c.y - c.th / 2 - 8 + 2000); tx.clip();
+    type('FIND YOUR CEILING.', 540, c.y - 44, { size: 88, weight: 900, ls: 2, fill: '#fff', align: 'center', alpha: fade, letter: i => { const e = E.outE(P(t, 26.35 + i * .025, 26.95 + i * .025)); return { dy: (1 - e) * 150, w: lerp(400, 900, e) }; } });
+    tx.restore();
+    type('Then raise it.', 540, c.y + 140, { size: 118, weight: 900, italic: true, fill: '#d4ef70', align: 'center', alpha: fade, letter: i => { const e = E.back(P(t, 27.45 + i * .03, 27.95 + i * .03), 2); return { dy: (1 - e) * 80, a: clamp(P(t, 27.45 + i * .03, 27.6 + i * .03)), w: lerp(300, 900, E.outC(P(t, 27.45 + i * .03, 28.1 + i * .03))) }; } });
+    if (logo) { const lp = E.outC(P(t, 28.0, 28.6)); tx.globalAlpha = lp * fade; const lw = 330, lh = lw * logo.height / logo.width; tx.drawImage(logo, 540 - lw / 2, 1300 + (1 - lp) * 20, lw, lh); tx.globalAlpha = 1; }
+  }
+}
+
+/* ================================================================ WebGL */
+const cv = document.getElementById('gl');
+const gl = cv.getContext('webgl2', { antialias: false, alpha: false, preserveDrawingBuffer: true, premultipliedAlpha: false });
+if (!gl) { fail('This piece needs WebGL2. Try a current Chrome, Edge, Firefox or Safari.'); return; }
+const FLOAT = !!gl.getExtension('EXT_color_buffer_float');
+const VS_FULL = `#version 300 es
+layout(location=0) in vec2 aPos; out vec2 vUv; void main(){ vUv = aPos*.5+.5; gl_Position = vec4(aPos,0.,1.); }`;
+const FS_BG = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o;
+uniform float uT, uCeilA, uGridA, uTint, uHeartBeat; uniform vec4 uCam, uCeil, uHeart;
+float h21(vec2 p){ p = fract(p*vec2(123.34,456.21)); p += dot(p,p+45.32); return fract(p.x*p.y); }
+float vn(vec2 p){ vec2 i=floor(p), f=fract(p), u=f*f*(3.-2.*f); return mix(mix(h21(i),h21(i+vec2(1,0)),u.x), mix(h21(i+vec2(0,1)),h21(i+vec2(1,1)),u.x), u.y); }
+float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=a*vn(p); p=p*2.03+vec2(1.7,9.2); a*=.5; } return s; }
+vec2 toWorld(vec2 d){ vec2 q=d-vec2(540.,960.); float c=cos(-uCam.w), s=sin(-uCam.w); q=vec2(c*q.x-s*q.y, s*q.x+c*q.y); return q/uCam.z+uCam.xy; }
+void main(){
+  vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.);
+  vec2 w = toWorld(d);
+  vec2 far = (d-vec2(540.,960.))/(1.+(uCam.z-1.)*.15) + uCam.xy*.25;
+  vec3 col = mix(vec3(.012,.006,.028), vec3(.07,.03,.14), pow(clamp(1.-vUv.y*1.1+.1,0.,1.),1.6));
+  float n = fbm(far*.0017 + vec2(0., uT*.035)), n2 = fbm(far*.0045 - vec2(uT*.02, 0.));
+  col += smoothstep(.45,.95,n)*vec3(.32,.12,.62)*.55 + smoothstep(.62,1.,n2)*vec3(.35,.45,.12)*.12;
+  col = mix(col, col*vec3(1.35,.6,1.2) + vec3(.06,.0,.05)*(.6+.4*uHeartBeat), uTint);
+  // ceiling: a beam of light
+  vec2 a = vec2(uCeil.x, uCeil.z), b = vec2(uCeil.y, uCeil.z), pa = w-a, ba = b-a;
+  float hh = clamp(dot(pa,ba)/dot(ba,ba),0.,1.), dist = length(pa-ba*hh), th = uCeil.w*.5;
+  float px = 1.2/uCam.z, core = 1.-smoothstep(th-px, th+px, dist), dd = max(dist-th,0.);
+  float shimmer = .85+.15*sin(w.x*.045 - uT*9.) + .1*vn(vec2(w.x*.02 - uT*6., 0.));
+  vec3 lime = vec3(.83,.94,.44);
+  col += (mix(lime, vec3(1.), .35)*core*1.05*shimmer + lime*(exp(-dd/9.)*.55 + exp(-dd/60.)*.16 + exp(-dd/240.)*.05)) * uCeilA;
+  // heart: a living orb
+  if (uHeart.z > 1.) {
+    vec2 hc = uHeart.xy; float r = uHeart.z, q = length(w-hc)/r, nz = sqrt(max(0.,1.-q*q));
+    float veins = fbm((w-hc)/r*2.4 + vec2(uT*.4, -uT*.25)) + .35*fbm((w-hc)/r*6. - uT*.6);
+    vec3 inner = mix(vec3(.28,.03,.42), vec3(1.,.4,.9), smoothstep(.55,1.05,veins)) * (.35+.95*nz);
+    inner += vec3(.85,1.,.5) * pow(1.-nz, 5.) * 1.3;
+    inner += vec3(1.,.8,1.) * pow(nz, 8.) * .35 * (1.+uHeartBeat);
+    float inside = 1.-smoothstep(.985, 1.005, q), out_ = max(q-1., 0.);
+    col = mix(col, inner, inside);
+    col += vec3(.75,.3,1.) * (exp(-out_*3.2)*.55 + exp(-out_*.8)*.14) * (1.+uHeartBeat*.9) * (1.-inside);
+  }
+  // test: a faint lab grid
+  if (uGridA > 0.) {
+    vec2 g = abs(fract((d-vec2(110.,760.))/57.)-.5)*57.; float line = 1.-smoothstep(0., 1.4, min(g.x,g.y));
+    float inA = step(110.,d.x)*step(d.x,980.)*step(760.,d.y)*step(d.y,1330.);
+    col += vec3(.5,.35,1.)*line*.09*uGridA*inA;
+  }
+  o = vec4(col,1.);
+}`;
+const VS_P = `#version 300 es
+layout(location=0) in vec2 aCorner; layout(location=1) in vec4 aSeg; layout(location=2) in vec4 aCol; layout(location=3) in vec2 aSz;
+uniform vec4 uCam; uniform vec2 uShake; out vec2 vL; out vec4 vCol; out float vShape, vLen, vRad;
+vec2 scr(vec2 w){ vec2 q=(w-uCam.xy)*uCam.z; float c=cos(uCam.w), s=sin(uCam.w); q=vec2(c*q.x-s*q.y, s*q.x+c*q.y); return q+vec2(540.,960.)+uShake; }
+void main(){
+  vec2 a = scr(aSeg.xy), b = scr(aSeg.zw); float rad = max(aSz.x*uCam.z, .7);
+  vec2 dv = b-a; float len = length(dv); vec2 t = len>.001 ? dv/len : vec2(1.,0.), n = vec2(-t.y,t.x);
+  float half_ = len*.5 + rad; vec2 p = (a+b)*.5 + t*aCorner.x*half_ + n*aCorner.y*rad;
+  vL = vec2(aCorner.x*half_, aCorner.y*rad); vLen = len*.5; vRad = rad;
+  vCol = vec4(aCol.rgb, aCol.a * rad/(rad+len*.25)); vShape = aSz.y;
+  gl_Position = vec4(p.x/540.-1., 1.-p.y/960., 0., 1.);
+}`;
+const FS_P = `#version 300 es
+precision highp float; in vec2 vL; in vec4 vCol; in float vShape, vLen, vRad; out vec4 o;
+void main(){
+  float dx = max(abs(vL.x)-vLen, 0.), d = length(vec2(dx, vL.y))/vRad;
+  float a = vShape < .5 ? exp(-d*d*4.5) : exp(-pow((d-.82)/.1, 2.));
+  a *= vCol.a;
+  o = vec4(vCol.rgb*a, a);
+}`;
+const FS_TEX = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uGain;
+void main(){ vec4 c = texture(uTex, vec2(vUv.x, 1.-vUv.y)); o = vec4(c.rgb*uGain, c.a); }`;
+const FS_BRIGHT = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uThr;
+void main(){ vec3 c = texture(uTex, vUv).rgb; float l = max(c.r, max(c.g, c.b)); float k = max(l-uThr, 0.); o = vec4(c * (k/(l+1e-4)), 1.); }`;
+const FS_BLUR = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform vec2 uDir;
+void main(){ vec3 c = texture(uTex, vUv).rgb*.227027;
+  c += (texture(uTex, vUv+uDir*1.3846).rgb + texture(uTex, vUv-uDir*1.3846).rgb)*.3162162;
+  c += (texture(uTex, vUv+uDir*3.2308).rgb + texture(uTex, vUv-uDir*3.2308).rgb)*.0702703; o = vec4(c,1.); }`;
+const FS_COPY = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o; uniform sampler2D uTex; uniform float uGain; void main(){ o = vec4(texture(uTex, vUv).rgb*uGain, 1.); }`;
+const FS_COMP = `#version 300 es
+precision highp float; in vec2 vUv; out vec4 o;
+uniform sampler2D uScene, uBloom; uniform vec4 uShock0, uShock1; uniform float uCA, uFlash, uFade, uSat, uBloomAmt, uT;
+vec3 shoulder(vec3 x){ return mix(x, 1.-.2*exp(-(x-.8)/.2), step(.8, x)); }
+void main(){
+  vec2 d = vec2(vUv.x*1080., (1.-vUv.y)*1920.), off = vec2(0.);
+  for (int i=0;i<2;i++){ vec4 s = i==0 ? uShock0 : uShock1; if (s.w <= 0.) continue; vec2 v = d-s.xy; float L = length(v); off += (L>0.? v/L : vec2(0.)) * exp(-pow((L-s.z)/70., 2.)) * s.w; }
+  vec2 uv = vUv + vec2(off.x/1080., -off.y/1920.);
+  vec2 cc = uv-.5; float ca = uCA*(.35+dot(cc,cc)*3.5);
+  vec3 c = vec3(texture(uScene, uv+cc*ca).r, texture(uScene, uv).g, texture(uScene, uv-cc*ca).b);
+  c += texture(uBloom, uv).rgb*uBloomAmt + uFlash;
+  c = shoulder(c);
+  float l = dot(c, vec3(.299,.587,.114)); c = mix(vec3(l), c, uSat);
+  vec2 q = vUv-.5; c *= 1.-dot(q*vec2(1.05,.8), q*vec2(1.05,.8))*.85;
+  float g = fract(sin(dot(d+fract(uT*7.13)*97., vec2(12.9898,78.233)))*43758.5453); c += (g-.5)*.05;
+  o = vec4(clamp(c*(1.-uFade), 0., 1.), 1.);
+}`;
+function prog(vs, fs) {
+  const mk = (type, src) => { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; };
+  const p = gl.createProgram(); gl.attachShader(p, mk(gl.VERTEX_SHADER, vs)); gl.attachShader(p, mk(gl.FRAGMENT_SHADER, fs)); gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+  const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS); for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
+  return { p, u };
+}
+let PR;
+try {
+  PR = { bg: prog(VS_FULL, FS_BG), part: prog(VS_P, FS_P), tex: prog(VS_FULL, FS_TEX), bright: prog(VS_FULL, FS_BRIGHT), blur: prog(VS_FULL, FS_BLUR), copy: prog(VS_FULL, FS_COPY), comp: prog(VS_FULL, FS_COMP) };
+} catch (e) { fail('Shader error: ' + e.message); console.error(e); return; }
+const fullVAO = gl.createVertexArray(); gl.bindVertexArray(fullVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+const partVAO = gl.createVertexArray(); gl.bindVertexArray(partVAO);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+const instBuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, instBuf); gl.bufferData(gl.ARRAY_BUFFER, pbuf.byteLength, gl.DYNAMIC_DRAW);
+[[1, 4, 0], [2, 4, 16], [3, 2, 32]].forEach(([loc, n, off]) => { gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, STRIDE * 4, off); gl.vertexAttribDivisor(loc, 1); });
+gl.bindVertexArray(null);
+const textTex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, textTex);
+[[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
+function target(w, hgt) {
+  const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+  gl.texImage2D(gl.TEXTURE_2D, 0, FLOAT ? gl.RGBA16F : gl.RGBA8, w, hgt, 0, gl.RGBA, FLOAT ? gl.HALF_FLOAT : gl.UNSIGNED_BYTE, null);
+  [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]].forEach(([k, v]) => gl.texParameteri(gl.TEXTURE_2D, k, v));
+  const f = gl.createFramebuffer(); gl.bindFramebuffer(gl.FRAMEBUFFER, f); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+  return { f, t, w, h: hgt };
+}
+let RS = 0, RW = 0, RH = 0, scene, bloom = [];
+function resize(scale) {
+  scale = Math.max(.3, Math.min(1, scale)); if (Math.abs(scale - RS) < .01 && scene) return;
+  RS = scale; RW = Math.round(W * RS); RH = Math.round(H * RS); cv.width = RW; cv.height = RH; tcv.width = RW; tcv.height = RH;
+  scene = target(RW, RH); bloom = [];
+  for (let i = 1; i <= 4; i++) { const w = Math.max(8, Math.round(RW / (2 ** i))), hh = Math.max(8, Math.round(RH / (2 ** i))); bloom.push({ a: target(w, hh), b: target(w, hh) }); }
+  layoutCache.clear();
+}
+const full = () => { gl.bindVertexArray(fullVAO); gl.drawArrays(gl.TRIANGLES, 0, 3); };
+function pass(pr, fbo, tex, uni = {}) {
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo ? fbo.f : null); gl.viewport(0, 0, fbo ? fbo.w : RW, fbo ? fbo.h : RH);
+  gl.useProgram(pr.p); if (tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, tex); gl.uniform1i(pr.u.uTex, 0); }
+  for (const k in uni) { const v = uni[k], l = pr.u[k]; if (l == null) continue; if (typeof v === 'number') gl.uniform1f(l, v); else if (v.length === 2) gl.uniform2fv(l, v); else gl.uniform4fv(l, v); }
+  full();
+}
+
+/* ================================================================ one frame */
+function toScreen(wx, wy, cam) { let x = (wx - cam.x) * cam.z, y = (wy - cam.y) * cam.z; const c = Math.cos(cam.r), s = Math.sin(cam.r); return [c * x - s * y + 540, s * x + c * y + 960]; }
+function draw(t) {
+  t = clamp(t, 0, DUR - 1e-4);
+  const cam = buildParticles(t), sh = shakeAt(t), c = ceilAt(t), hs = heartAt(t);
+  // post parameters from the impacts
+  let ca = .0016, flash = 0; const shocks = [];
+  for (const [ti, x, y, a] of IMPACTS) {
+    const age = t - ti; if (age < 0) continue;
+    ca += a * .009 * Math.exp(-age * 7); flash += (FLASH[ti] || a * .12) * Math.exp(-age * (FLASH[ti] ? 15 : 16));
+    if (age < .9) { const [sx, sy] = toScreen(x, y, camAt(ti)); shocks.push([sx, sy, age * 1500, a * 16 * Math.exp(-age * 3.2)]); }
+  }
+  const freeze = P(t, 8.42, 8.6) * (1 - P(t, 9.97, 10.0));
+  ca += freeze * .004;
+  for (let k = 0; k < 10; k++) { const age = t - (16 + k * .5); if (age >= 0 && age < .7) shocks.push([540, 760, age * 1200, 5 * Math.exp(-age * 4)]); }
+  while (shocks.length < 2) shocks.push([0, 0, 0, 0]);
+  const S2 = shocks.slice(-2);
+
+  // scene
+  gl.disable(gl.BLEND);
+  pass(PR.bg, scene, null, {
+    uT: t, uCam: [cam.x, cam.y, cam.z, cam.r], uCeil: [c.x0, c.x1, c.y, c.th], uCeilA: c.a,
+    uHeart: [HC[0], HC[1], hs.r, 0], uHeartBeat: hs.beat, uTint: P(t, 15.3, 15.8) * (1 - P(t, 21.1, 21.3)), uGridA: P(t, 21.5, 22) * (1 - P(t, 26, 26.4)),
+  });
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  gl.useProgram(PR.part.p); gl.uniform4fv(PR.part.u.uCam, [cam.x, cam.y, cam.z, cam.r]); gl.uniform2fv(PR.part.u.uShake, sh);
+  gl.bindVertexArray(partVAO); gl.bindBuffer(gl.ARRAY_BUFFER, instBuf); gl.bufferSubData(gl.ARRAY_BUFFER, 0, pbuf, 0, np * STRIDE);
+  gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, np);
+  // type
+  drawText(t, cam, sh, RS);
+  gl.bindTexture(gl.TEXTURE_2D, textTex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, tcv);
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+  pass(PR.tex, scene, textTex, { uGain: 1.0 });
+  gl.disable(gl.BLEND);
+  // bloom
+  pass(PR.bright, bloom[0].a, scene.t, { uThr: .82 });
+  for (let i = 0; i < bloom.length; i++) {
+    if (i > 0) pass(PR.copy, bloom[i].a, bloom[i - 1].a.t, { uGain: 1 });
+    const L = bloom[i];
+    pass(PR.blur, L.b, L.a.t, { uDir: [1 / L.a.w, 0] });
+    pass(PR.blur, L.a, L.b.t, { uDir: [0, 1 / L.a.h] });
+  }
+  gl.enable(gl.BLEND); gl.blendFunc(gl.ONE, gl.ONE);
+  for (let i = bloom.length - 1; i > 0; i--) pass(PR.copy, bloom[i - 1].a, bloom[i].a.t, { uGain: .9 });
+  gl.disable(gl.BLEND);
+  // composite
+  gl.useProgram(PR.comp.p);
+  gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, scene.t); gl.uniform1i(PR.comp.u.uScene, 0);
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, bloom[0].a.t); gl.uniform1i(PR.comp.u.uBloom, 1);
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, RW, RH);
+  gl.uniform4fv(PR.comp.u.uShock0, S2[0]); gl.uniform4fv(PR.comp.u.uShock1, S2[1]);
+  gl.uniform1f(PR.comp.u.uCA, ca); gl.uniform1f(PR.comp.u.uFlash, flash); gl.uniform1f(PR.comp.u.uBloomAmt, .6);
+  gl.uniform1f(PR.comp.u.uSat, 1 - .8 * freeze); gl.uniform1f(PR.comp.u.uFade, P(t, 29.3, 29.95) + (1 - P(t, 0, .25)) * .9); gl.uniform1f(PR.comp.u.uT, t);
+  full();
   ui(t);
 }
 
-/* ============================================================ workspace + playback */
+/* ================================================================ workspace + playback */
 const BEATS = [
-  [0, 'Hook', 'Your body has a ceiling.'],
-  [4, 'The curve', 'Push harder, use more oxygen… until you can’t. That limit has a name:'],
-  [10, 'The name', 'V̇O₂max: volume per minute · of oxygen used by your body · at maximum effort.'],
-  [15.3, 'The heart', 'Your heart pumps oxygen to your muscles. How much it can pump usually sets the limit.'],
-  [21.4, 'The test', 'Measured breath by breath. The curve hits the ceiling: V̇O₂max.'],
-  [26, 'The payoff', 'Find your ceiling. Then raise it.'],
+  [0, 'Hook', 'A photon of oxygen shoots up and hits a beam of light. “Your body has a ceiling.”'],
+  [4, 'The curve', 'A river of oxygen climbs with effort… until you can’t. Time stops.'],
+  [10, 'The name', 'The river condenses into V̇O₂max: volume per minute · of oxygen · at maximum effort.'],
+  [15.3, 'The heart', 'Through the O into a living heart that pumps light out on every beat. How much it can pump usually sets the limit.'],
+  [21.3, 'The test', 'Measured breath by breath; the beam slams onto the plateau.'],
+  [26, 'The payoff', 'Find your ceiling. The photon pushes it up and oxygen erupts past it. Then raise it.'],
 ];
 const shotsEl = document.getElementById('shots');
 const fmt = s => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(2).padStart(5, '0')}`; };
 BEATS.forEach(([t, name, words]) => {
   const li = document.createElement('li'), bt = document.createElement('button'); bt.type = 'button';
   bt.innerHTML = `<span class="st">${fmt(t)}</span><span class="sn">${name}</span><span class="vo">${words}</span>`;
-  bt.addEventListener('click', () => seek(t + .6));
-  li.appendChild(bt); shotsEl.appendChild(li);
+  bt.addEventListener('click', () => seek(t + .6)); li.appendChild(bt); shotsEl.appendChild(li);
 });
-const scrub = document.getElementById('scrub'), fill = document.getElementById('fill'), tc = document.getElementById('tc'), wrap = document.getElementById('scrubwrap');
+const scrub = document.getElementById('scrub'), fillEl = document.getElementById('fill'), tcEl = document.getElementById('tc'), wrap = document.getElementById('scrubwrap');
 BEATS.forEach(([t]) => { if (!t) return; const d = document.createElement('div'); d.className = 'tick'; d.style.left = (t / DUR * 100) + '%'; wrap.insertBefore(d, scrub); });
-let lastShot = -1;
+let lastShot = -1, curT = 0;
 function ui(t) {
-  scrub.value = t; fill.style.width = (t / DUR * 100) + '%';
-  tc.innerHTML = `${fmt(t)} <small>/ ${fmt(DUR)}</small>`;
+  curT = t; scrub.value = t; fillEl.style.width = (t / DUR * 100) + '%';
+  tcEl.innerHTML = `${fmt(t)} <small>/ ${fmt(DUR)}</small>`;
   let s = 0; BEATS.forEach(([st], i) => { if (t >= st) s = i; });
   if (s !== lastShot) { [...shotsEl.children].forEach((li, i) => li.classList.toggle('on', i === s)); lastShot = s; }
 }
-// playback clock: the audio drives the picture when sound is on, so they cannot drift
-const audio = document.getElementById('track');
-const playBtn = document.getElementById('play'), poster = document.getElementById('poster');
+const audio = document.getElementById('track'), playBtn = document.getElementById('play'), poster = document.getElementById('poster');
 let playing = false, soundOn = true, speed = 1, clock0 = 0, time0 = 0;
-const render = t => tl.time(clamp(t, 0, DUR), false);
-function now() {
-  if (soundOn && !audio.paused && audio.readyState >= 2) return audio.currentTime;
-  return time0 + (performance.now() - clock0) / 1000 * speed;
-}
-function startAt(t) {
-  time0 = t; clock0 = performance.now();
-  if (soundOn) { try { audio.currentTime = t; audio.playbackRate = speed; audio.play().catch(() => {}); } catch (e) {} }
-}
+const liveScale = () => document.getElementById('hq').checked ? 1 : Math.min(1, (stageEl.clientHeight * (window.devicePixelRatio || 1)) / H);
+function now() { if (soundOn && !audio.paused && audio.readyState >= 2) return audio.currentTime; return time0 + (performance.now() - clock0) / 1000 * speed; }
+function startAt(t) { time0 = t; clock0 = performance.now(); if (soundOn) { try { audio.currentTime = t; audio.playbackRate = speed; audio.play().catch(() => {}); } catch (e) {} } }
 function frame() {
   if (!playing) return;
   let t = now();
-  if (t >= DUR) {
-    if (document.getElementById('loop').checked) { startAt(0); t = 0; }
-    else { render(DUR); setPlaying(false); return; }
-  }
-  render(t); requestAnimationFrame(frame);
+  if (t >= DUR) { if (document.getElementById('loop').checked) { startAt(0); t = 0; } else { draw(DUR); setPlaying(false); return; } }
+  draw(t); requestAnimationFrame(frame);
 }
 function setPlaying(p) {
   playing = p; poster.hidden = true;
   playBtn.innerHTML = p ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-label', p ? 'Pause' : 'Play');
-  if (p) { let t = tl.time(); if (t >= DUR - .02) t = 0; startAt(t); requestAnimationFrame(frame); }
-  else audio.pause();
+  if (p) { resize(liveScale()); let t = curT; if (t >= DUR - .02) t = 0; startAt(t); requestAnimationFrame(frame); } else audio.pause();
 }
-function seek(t) { if (playing) setPlaying(false); render(t); poster.hidden = true; try { audio.currentTime = clamp(t, 0, DUR); } catch (e) {} }
+function seek(t) { if (playing) setPlaying(false); resize(liveScale()); draw(t); poster.hidden = true; try { audio.currentTime = clamp(t, 0, DUR); } catch (e) {} }
 playBtn.addEventListener('click', () => setPlaying(!playing));
-poster.addEventListener('click', () => { render(0); setPlaying(true); });
+poster.addEventListener('click', () => { curT = 0; setPlaying(true); });
 scrub.addEventListener('input', () => seek(parseFloat(scrub.value)));
-document.getElementById('back').addEventListener('click', () => seek(Math.round(tl.time() * FPS - 1) / FPS));
-document.getElementById('fwd').addEventListener('click', () => seek(Math.round(tl.time() * FPS + 1) / FPS));
-document.getElementById('snd').addEventListener('change', e => { soundOn = e.target.checked; if (playing) { const t = tl.time(); if (soundOn) startAt(t); else { audio.pause(); time0 = t; clock0 = performance.now(); } } });
+document.getElementById('back').addEventListener('click', () => seek(Math.round(curT * FPS - 1) / FPS));
+document.getElementById('fwd').addEventListener('click', () => seek(Math.round(curT * FPS + 1) / FPS));
+document.getElementById('snd').addEventListener('change', e => { soundOn = e.target.checked; if (playing) { if (soundOn) startAt(curT); else { audio.pause(); time0 = curT; clock0 = performance.now(); } } });
+document.getElementById('hq').addEventListener('change', () => { resize(liveScale()); if (!playing) draw(curT); });
 document.getElementById('safeT').addEventListener('change', e => { document.getElementById('safe').hidden = !e.target.checked; });
-document.getElementById('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); audio.playbackRate = speed; if (playing) startAt(tl.time()); });
+document.getElementById('speed').addEventListener('change', e => { speed = parseFloat(e.target.value); audio.playbackRate = speed; if (playing) startAt(curT); });
 document.addEventListener('keydown', e => {
   if (e.target.closest('select, input[type=checkbox], button')) return;
   if (e.code === 'Space') { e.preventDefault(); setPlaying(!playing); }
-  if (e.code === 'ArrowLeft') seek(Math.round(tl.time() * FPS - 1) / FPS);
-  if (e.code === 'ArrowRight') seek(Math.round(tl.time() * FPS + 1) / FPS);
+  if (e.code === 'ArrowLeft') seek(Math.round(curT * FPS - 1) / FPS);
+  if (e.code === 'ArrowRight') seek(Math.round(curT * FPS + 1) / FPS);
 });
+window.addEventListener('resize', () => { if (!playing) { resize(liveScale()); draw(curT); } });
 
-window.reel = { duration: DUR, fps: FPS, seek(t) { render(t); }, ready: document.fonts.ready };
-if (location.hash === '#render') document.body.classList.add('render');
-render(12.0);           // poster frame: the name, decoded
-poster.hidden = false;
+const RENDER = location.hash === '#render';
+if (RENDER) document.body.classList.add('render');
+resize(RENDER ? 1 : liveScale());
+window.reel = { duration: DUR, fps: FPS, seek(t) { draw(t); }, ready: Promise.resolve(true), setScale(s) { resize(s); } };
+draw(12.1);      // poster frame: the name, formed from light
+poster.hidden = RENDER;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { speed = .5; document.getElementById('speed').value = '0.5'; }
 })();
 </script>
