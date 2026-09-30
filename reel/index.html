@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VO2max Reel</title>
+<style>
+  @font-face { font-family: 'Figtree'; font-style: normal; font-weight: 300 900;
+    src: url(fonts/Figtree-latin.woff2) format('woff2'); }
+  @font-face { font-family: 'Figtree'; font-style: normal; font-weight: 300 900;
+    src: url(fonts/Figtree-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1E00-1E9F, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+  @font-face { font-family: 'Figtree'; font-style: italic; font-weight: 300 900;
+    src: url(fonts/Figtree-Italic-latin.woff2) format('woff2'); }
+  html, body { margin: 0; background: #1E0A1C; }
+  canvas { display: block; }
+  /* Preview mode: scale to fit window */
+  body.preview { display: grid; place-items: center; height: 100vh; overflow: hidden; }
+  body.preview canvas { height: 96vh; width: auto; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script src="reel.js"></script>
+<script>
+  // Open index.html?preview in a browser to watch in real time.
+  if (location.search.includes('preview')) {
+    document.body.classList.add('preview');
+    window.reelReady.then(() => {
+      const t0 = performance.now();
+      const loop = () => { window.renderFrame(((performance.now() - t0) / 1000) % REEL.DURATION); requestAnimationFrame(loop); };
+      loop();
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+out/segments/
+out/stills/
+out/check/
+out/sheet*.png
+out/crop.png
+out/video_silent.mp4
+node_modules/
+out/vo2max_reel_preview.mp4
