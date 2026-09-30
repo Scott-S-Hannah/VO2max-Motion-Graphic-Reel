@@ -7,3 +7,4 @@ out/video_silent.mp4
 node_modules/
 out/assets_sheet*.png
 out/check_portrait.png
+motion/out/

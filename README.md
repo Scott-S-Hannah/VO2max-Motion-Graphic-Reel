@@ -4,7 +4,30 @@ A 59-second vertical (1080×1920, 30 fps) Instagram reel explaining VO₂max. It
 
 **Output:** `out/vo2max_reel.mp4` (H.264 + AAC, faststart; `out/vo2max_reel_preview.mp4` is a smaller copy for messaging), with a cover frame at `out/cover.png`.
 
-## Storyboard
+## Live motion master (`motion/`): the source of truth
+
+`motion/index.html` is the reel as a live, scrubbable motion graphic built on GSAP and SVG. It has play/pause, frame stepping, shot markers, a caption toggle and Instagram safe-zone guides. The published version is at https://claude.ai/artifact/1bHyA2g5ZT3QWuynA4TSpY. Video is exported from this timeline once the motion is signed off.
+
+The piece runs 55.5 s in eight shots, following one idea: VO₂max is a ceiling.
+
+1. **The origin:** silent-film intertitle for 1923 and A. V. Hill, then the Douglas bag inflating breath by breath.
+2. **The discovery:** the camera tracks the pen as the runner speeds up, the line plateaus, and a ceiling bar slams down onto it.
+3. **The name:** the ceiling turns Bright Green and floods the frame Deep Purple. V̇O₂max rises from behind the bar.
+4. **The journey:** the camera zooms through the O, then follows one O₂ molecule from alveoli to red cell, heart, capillary and mitochondrion (ATP).
+5. **The limit:** the Fick principle. Cardiac output is usually the main limit (Bassett & Howley, 2000).
+6. **The modern test:** an ECG sweep opens onto the Winchester lab photo, with breath-by-breath data and the plateau. The ceiling bar returns.
+7. **Why it matters:** the bar floods Bright Green. It shows better endurance and 13% lower all-cause mortality per 1-MET (Kodama et al., 2009).
+8. **The close:** quatrefoil PhotoFrame, "Find your ceiling. Then raise it.", logo and MotifStrip.
+
+On-screen captions carry the VO script; the shot list in the page shows it.
+
+The page also has a bare 1080×1920 render mode, `index.html#render`. From it, `window.reel.seek(t)` draws any frame exactly, for export.
+
+To preview locally: `GSAP_DIR=<path to gsap/dist> node motion/tools/preview.cjs stills 12 20 41` or `... strip 11 12.6 8` for a filmstrip. The harness wraps the page in the artifact skeleton and serves GSAP and Figtree locally.
+
+The older `reel/` canvas version and `out/*.mp4` are the first drafts, kept for reference.
+
+## First-draft storyboard (`reel/`)
 
 | Time | Scene | Look | Key content |
 |---|---|---|---|
