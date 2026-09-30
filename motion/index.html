@@ -953,7 +953,16 @@ const RENDER = location.hash === '#render';
 if (RENDER) document.body.classList.add('render');
 resize(RENDER ? 1 : liveScale());
 window.reel = { duration: DUR, fps: FPS, seek(t) { draw(t); ui(t); }, renderBlur, ready: Promise.resolve(true), setScale(s) { resize(s); },
-  debug: { camAt, toScreen, ceilAt, photonAt } };
+  debug: { camAt, toScreen, ceilAt, photonAt },
+  // how far the picture moves in one frame (px): the export spends more motion-blur sub-frames where it moves most
+  motion(t) {
+    const d = 1 / FPS, pts = [[-450, -800], [450, -800], [0, 0], [-450, 800], [450, 800]];
+    const at = tt => { const c = camAt(tt), s = shakeAt(tt); return pts.map(([dx, dy]) => { const p = toScreen(c, c.x + dx, c.y + dy); return [p[0] + s[0], p[1] + s[1]]; }); };
+    const A = at(t - d / 2), B = at(t + d / 2);
+    const cam = Math.max(...A.map((p, i) => Math.hypot(p[0] - B[i][0], p[1] - B[i][1])));
+    const fast = [[1.72, 2.1], [.8, 1.1], [8.15, 8.5], [9.95, 10.9], [14.7, 15.4], [18.75, 19.05], [20.85, 21.7], [24.7, 25.15], [26.3, 27.5]].some(([a, b]) => t >= a && t <= b);
+    return { cam, fast };
+  } };
 draw(11.3); ui(11.3);      // poster frame: the name, formed from light
 poster.hidden = RENDER;
 if (matchMedia('(prefers-reduced-motion: reduce)').matches) { speed = .5; document.getElementById('speed').value = '0.5'; }

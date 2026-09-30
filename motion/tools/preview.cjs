@@ -5,7 +5,7 @@
  *   node motion/tools/preview.cjs strip 11.0 12.4 8          -> filmstrip of 8 frames between two times
  *   node motion/tools/preview.cjs workspace                  -> screenshot of the full editing page
  *   node motion/tools/preview.cjs video [K] [shutter] [a] [b] -> motion/out/vo2max_reel.mp4: every frame averaged from
- *        K sub-frames over a 180° shutter (true motion blur), muxed with out/track.wav (needs FFMPEG or ffmpeg on PATH)
+ *        K sub-frames over a 180° shutter (true motion blur; K = 0 adapts 3–8 sub-frames to how fast the frame moves), muxed with out/track.wav (needs FFMPEG or ffmpeg on PATH)
  * Serves the page wrapped in the same skeleton the Artifact viewer adds, and routes the cdnjs GSAP
  * script to a local copy (GSAP_DIR) when the sandbox cannot reach cdnjs.
  */
@@ -52,7 +52,7 @@ async function video(base, K = 8, shutter = .5, a = 0, b = 30) {
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', silent], { stdio: ['pipe', 'inherit', 'inherit'] });
   const f0 = Math.round(a * FPS), f1 = Math.round(b * FPS), t0 = Date.now();
   for (let f = f0; f < f1; f++) {
-    const url = await page.evaluate(([t, K, s]) => { window.reel.renderBlur(t, K, s); return document.getElementById('gl').toDataURL('image/jpeg', .96); }, [f / FPS, K, shutter]);
+    const url = await page.evaluate(([t, K, s]) => { if (!K) { const m = window.reel.motion(t); K = m.fast ? 8 : m.cam > 10 ? 6 : 3; } window.reel.renderBlur(t, K, s); return document.getElementById('gl').toDataURL('image/jpeg', .96); }, [f / FPS, K, shutter]);
     if (!ff.stdin.write(Buffer.from(url.split(',')[1], 'base64'))) await new Promise(r => ff.stdin.once('drain', r));
     if ((f - f0) % 30 === 29) console.log(`frame ${f + 1}/${f1}  ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   }
