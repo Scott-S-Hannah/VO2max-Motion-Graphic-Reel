@@ -23,7 +23,7 @@ The concept is oxygen as light, and one idea runs throughout: VO₂max is a ceil
 | 21–26 s | **The test** | The heart implodes into a point of light. "MEASURED *breath by breath.*" Breaths land as pulses, the trend is drawn in light, and the beam slams onto the plateau as V̇O₂max. |
 | 26–30 s | **The payoff** | "FIND YOUR CEILING." The photon returns and pushes the beam up as oxygen erupts past it. "*Then raise it.*" Logo, then fade to black, which is also the opening frame, so it loops. |
 
-The soundtrack is `motion/tools/soundtrack.py` (120 bpm, written first; the picture is cut to its cues). Earlier versions are in `motion/archive/`: v2 (55 s, illustrated), and v3 (30 s, strict brand system).
+The soundtrack is `motion/tools/soundtrack.py`, fully synthesised and scored to the picture's cues at 120 bpm. It moves from A minor to C major at the payoff. Each visual event has its own sound: photon charge and laser launch, beam hum, impacts with reverse-reverb pre-swells, a tape-stop and frozen glass cluster for the time-stop, a granular particle swarm, heartbeats with a blood rush on every pump, and an implosion. During the test, every breath is a note whose pitch follows its V̇O₂ value, so you can hear the plateau. Running it also writes `motion/out/spectrogram.png` with the cues marked, and prints loudness and spectral balance for each section. Earlier versions are in `motion/archive/`: v2 (55 s, illustrated), and v3 (30 s, strict brand system).
 
 ## First-draft storyboard (`reel/`)
 
