@@ -1,0 +1,938 @@
+<title>What is VO2max? Reel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  /* Layout: an editing workspace. The 9:16 stage is the hero; transport and shot list sit beside it (stacked on phones).
+     Single deliberate dark look so the stage colours read true. Stage colours are University of Winchester tokens. */
+  :root {
+    --ws-bg: #130b1f;
+    --ws-panel: #1d1330;
+    --ws-line: #3e2d5a;
+    --ws-fg: #f4f0fa;
+    --ws-muted: #b5aac9;
+    --uow-deep: #291647;
+    --uow-purple: #c68efd;
+    --uow-green: #d4ef70;
+    --font-ui: "Figtree", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body { background: var(--ws-bg); color: var(--ws-fg); font-family: var(--font-ui); font-size: 15px; line-height: 1.45; }
+  .app {
+    display: grid; grid-template-columns: auto minmax(0, 400px); gap: 28px;
+    justify-content: center; align-items: start;
+    padding-inline: max(16px, 3vw); padding-block: 20px 28px;
+  }
+  .stage-col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .stage {
+    position: relative; height: min(86vh, 1080px); aspect-ratio: 9 / 16; max-width: 100%;
+    background: #000; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px var(--ws-line);
+  }
+  .stage svg, .stage canvas, .stage .vignette, .stage .safe { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .stage canvas { mix-blend-mode: overlay; pointer-events: none; }
+  .stage .vignette { pointer-events: none; background: radial-gradient(ellipse 75% 60% at 50% 46%, rgba(0,0,0,0) 45%, rgba(0,0,0,.72) 100%); }
+  .safe { pointer-events: none; }
+  .safe div { position: absolute; left: 0; right: 0; border: 1.5px dashed rgba(198,142,253,.9); background: rgba(198,142,253,.12);
+    font: 600 11px/1.2 var(--font-mono); color: #fff; padding: 4px 6px; text-shadow: 0 1px 2px #000; }
+  .safe .top { top: 0; height: 11.5%; }
+  .safe .bottom { bottom: 0; height: 21%; }
+  .safe .side { left: auto; right: 0; width: 11%; top: 57%; height: 27%; }
+  .poster {
+    position: absolute; inset: 0; display: grid; place-items: end center; padding-bottom: 12%; background: rgba(19,11,31,.35);
+    border: 0; cursor: pointer; color: var(--ws-fg); font: 800 15px var(--font-ui); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .poster span { display: inline-flex; align-items: center; gap: 10px; background: var(--uow-green); color: var(--uow-deep); padding: 14px 22px; border-radius: 999px; }
+  .poster:focus-visible { outline: 3px solid var(--uow-green); outline-offset: -6px; }
+
+  .transport { display: grid; gap: 10px; width: 100%; max-width: calc(min(86vh, 1080px) * 9 / 16); }
+  .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .btn {
+    display: inline-grid; place-items: center; min-width: 40px; height: 40px; padding: 0 12px; border-radius: 999px;
+    background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); cursor: pointer; font: 700 13px var(--font-ui);
+  }
+  .btn.primary { background: var(--uow-green); color: var(--uow-deep); border-color: var(--uow-green); min-width: 48px; height: 48px; }
+  .btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--uow-green); outline-offset: 2px; }
+  .tc { font: 600 14px var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ws-fg); }
+  .tc small { color: var(--ws-muted); font-weight: 500; }
+  .scrub { position: relative; height: 34px; }
+  .scrub .track { position: absolute; left: 0; right: 0; top: 14px; height: 6px; border-radius: 3px; background: var(--ws-line); overflow: hidden; }
+  .scrub .fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--uow-green); width: 0; }
+  .scrub .tick { position: absolute; top: 8px; width: 2px; height: 18px; background: var(--uow-purple); border-radius: 1px; }
+  .scrub input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; }
+  label.tog { display: inline-flex; align-items: center; gap: 6px; color: var(--ws-muted); font-size: 13px; cursor: pointer; }
+  label.tog input { accent-color: var(--uow-green); }
+  select { background: var(--ws-panel); color: var(--ws-fg); border: 1px solid var(--ws-line); border-radius: 8px; height: 32px; font: 600 13px var(--font-ui); }
+
+  .side { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .side h1 { margin: 0; font-size: 26px; line-height: 1.15; font-weight: 800; text-wrap: balance; }
+  .side h1 em { color: var(--uow-green); font-style: italic; }
+  .side p { margin: 0; color: var(--ws-muted); max-width: 60ch; }
+  .eyebrow { font: 800 11px var(--font-ui); letter-spacing: .14em; text-transform: uppercase; color: var(--uow-purple); }
+  ol.shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  ol.shots li button {
+    width: 100%; text-align: left; display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 2px 12px;
+    background: transparent; color: var(--ws-fg); border: 1px solid transparent; border-radius: 10px; padding: 10px 12px; cursor: pointer; font: inherit;
+  }
+  ol.shots li button:hover { background: var(--ws-panel); }
+  ol.shots li.on button { background: var(--ws-panel); border-color: var(--ws-line); }
+  ol.shots li.on .st { color: var(--uow-green); }
+  .st { font: 600 12px var(--font-mono); color: var(--ws-muted); grid-row: span 2; padding-top: 2px; font-variant-numeric: tabular-nums; }
+  .sn { font-weight: 800; }
+  .vo { color: var(--ws-muted); font-size: 13.5px; }
+  .note { border-top: 1px solid var(--ws-line); padding-top: 14px; font-size: 13px; color: var(--ws-muted); }
+  .note code { font-family: var(--font-mono); font-size: 12px; color: var(--ws-fg); }
+
+  /* #render: bare 1080×1920 stage for frame capture and video export */
+  body.render .app { display: block; padding: 0; }
+  body.render .side, body.render .transport, body.render .poster { display: none; }
+  body.render .stage { width: 1080px; height: 1920px; border-radius: 0; box-shadow: none; }
+  @media (max-width: 900px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .stage { height: auto; width: 100%; }
+    .transport { max-width: none; }
+  }
+</style>
+
+<div class="app">
+  <div class="stage-col">
+    <div class="stage" id="stage">
+      <svg id="svg" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Animated explainer: what is VO2max"></svg>
+      <canvas id="grain" width="360" height="640"></canvas>
+      <div class="vignette" id="vig"></div>
+      <div class="safe" id="safe" hidden>
+        <div class="top">Reels header</div>
+        <div class="side">Like / comment / share</div>
+        <div class="bottom">Caption, username and audio</div>
+      </div>
+      <button class="poster" id="poster" type="button" aria-label="Play from the start"><span>&#9654;&nbsp; Play from the start</span></button>
+    </div>
+    <div class="transport">
+      <div class="scrub" id="scrubwrap">
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <input id="scrub" type="range" min="0" max="55.5" step="0.01" value="0" aria-label="Timeline position">
+      </div>
+      <div class="row">
+        <button class="btn primary" id="play" type="button" aria-label="Play">&#9654;</button>
+        <button class="btn" id="back" type="button" aria-label="Back one frame">&#8722;1f</button>
+        <button class="btn" id="fwd" type="button" aria-label="Forward one frame">+1f</button>
+        <span class="tc" id="tc">00:00.00 <small>/ 00:55.50</small></span>
+      </div>
+      <div class="row">
+        <label class="tog"><input type="checkbox" id="cc" checked> Captions</label>
+        <label class="tog"><input type="checkbox" id="safeT"> Safe zones</label>
+        <label class="tog"><input type="checkbox" id="loop" checked> Loop</label>
+        <label class="tog">Speed
+          <select id="speed"><option value="0.25">0.25×</option><option value="0.5">0.5×</option><option value="1" selected>1×</option></select>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <div>
+      <div class="eyebrow">Sport &amp; Exercise Science · Reel master</div>
+      <h1>What is <em>V̇O₂max?</em></h1>
+    </div>
+    <p>The live source for the Instagram reel. Scrub, step frame by frame or jump to a shot. The video is exported from this same timeline.</p>
+    <ol class="shots" id="shots"></ol>
+    <div class="note">Export hook: <code>reel.seek(t)</code> renders any frame exactly (1080 × 1920, 30 fps). Soundtrack and voiceover are added at export; the lines above are the VO script.</div>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+<script>
+(async () => {
+'use strict';
+if (!window.gsap) { document.getElementById('poster').innerHTML = '<span>Animation library failed to load. Reload the page.</span>'; return; }
+try { await Promise.all(['400', '500', '600', '700', '800', '900'].flatMap(w => [document.fonts.load(`${w} 40px Figtree`), document.fonts.load(`italic ${w} 40px Figtree`)])); } catch (e) {}
+await document.fonts.ready;
+/* ============================================================ tokens */
+const K = {
+  deep: '#291647', deep90: '#3e2d5a', deep75: '#5f5075', deep60: '#7e7391',
+  bp: '#c68efd', bp60: '#ddbbfe', bg: '#d4ef70', bg60: '#e5f5a9', white: '#ffffff', grey: '#706e6c', light: '#e6ebeb',
+  paper: '#e9dbbf', paperL: '#f3e9d6', paperD: '#bfa27a', ink: '#3a2716', inkS: '#6e5537', canvas: '#d2ba8e',
+};
+const DUR = 55.5, FPS = 30;
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.getElementById('svg');
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const P = (t, a, b) => clamp((t - a) / (b - a));
+const ease = {
+  io: t => (t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+  out: t => 1 - Math.pow(1 - t, 3),
+  in: t => t * t * t,
+  out2: t => 1 - (1 - t) * (1 - t),
+  back: t => { const c = 1.7, d = c + 1; return 1 + d * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
+  lin: t => t,
+};
+const smin = (a, b, k) => -Math.log(Math.exp(-k * a) + Math.exp(-k * b)) / k;
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const hash = n => rng(n * 7919 + 17)();
+// keyframe interpolation: keys = [[t, v], ...]; values may be numbers or arrays
+function kf(t, keys, e = ease.io) {
+  if (t <= keys[0][0]) return keys[0][1];
+  for (let i = 1; i < keys.length; i++) {
+    if (t <= keys[i][0]) {
+      const [t0, v0] = keys[i - 1], [t1, v1, ez] = keys[i];
+      const k = (ez || e)((t - t0) / (t1 - t0));
+      return Array.isArray(v0) ? v0.map((v, j) => lerp(v, v1[j], k)) : lerp(v0, v1, k);
+    }
+  }
+  return keys[keys.length - 1][1];
+}
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) { if (k === 'text') e.textContent = attrs[k]; else e.setAttribute(k, attrs[k]); }
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const G = (parent, attrs = {}) => el('g', attrs, parent);
+
+/* ------------------------------------------------ rich text (SVG)
+   *word* = accent colour, _{x} subscript, ^{x} superscript,
+   V̇ = V with rate dot, v̄ = v with bar. Missing glyphs (≈ →) drawn as paths. */
+const mctx = document.createElement('canvas').getContext('2d');
+const fontStr = (o, sub) => `${o.italic ? 'italic ' : ''}${o.weight || 600} ${sub ? o.size * .62 : o.size}px Figtree`;
+function measure(s, o, sub) { mctx.font = fontStr(o, sub); mctx.letterSpacing = (o.ls || 0) + 'px'; return mctx.measureText(s).width; }
+const CUSTOM = { '≈': .62, '→': .92 };
+function parse(str) {
+  const out = []; let hl = false;
+  for (let i = 0; i < str.length; i++) {
+    const c = str[i];
+    if (c === '*') { hl = !hl; continue; }
+    if ((c === '_' || c === '^') && str[i + 1] === '{') { const j = str.indexOf('}', i); for (const ch of str.slice(i + 2, j)) out.push({ ch, mode: c === '_' ? 'sub' : 'sup', hl }); i = j; continue; }
+    if (c === '̇' || c === '̄') { out[out.length - 1].mark = c === '̇' ? 'dot' : 'bar'; continue; }
+    out.push({ ch: c, mode: 'n', hl });
+  }
+  return out;
+}
+function T(parent, str, o) {
+  const toks = parse(str), words = []; let cur = [];
+  for (const t of toks) { if (t.ch === ' ' && t.mode === 'n') { if (cur.length) words.push(cur); cur = []; } else cur.push(t); }
+  if (cur.length) words.push(cur);
+  const space = measure(' ', o);
+  const W = words.map(w => {
+    const runs = []; let r = null;
+    for (const t of w) {
+      const solo = !!t.mark || CUSTOM[t.ch] !== undefined;
+      if (!r || solo || r.solo || r.mode !== t.mode || r.hl !== t.hl) { r = { s: '', mode: t.mode, hl: t.hl, solo, mark: t.mark }; runs.push(r); }
+      r.s += t.ch;
+    }
+    let x = 0;
+    for (const r of runs) {
+      const sub = r.mode !== 'n';
+      r.w = CUSTOM[r.s] !== undefined ? CUSTOM[r.s] * o.size : measure(r.s, { ...o, italic: o.italic || (r.hl && o.hlItalic) }, sub);
+      r.x = x; x += r.w;
+    }
+    return { runs, w: x };
+  });
+  const lines = []; let ln = { words: [], w: 0 };
+  for (const w of W) {
+    if (ln.words.length && o.maxW && ln.w + space + w.w > o.maxW) { lines.push(ln); ln = { words: [], w: 0 }; }
+    w.x = ln.words.length ? ln.w + space : 0; ln.words.push(w); ln.w = w.x + w.w;
+  }
+  lines.push(ln);
+  const g = G(parent, { class: 'tx' });
+  const lh = (o.lh || 1.2) * o.size, wordEls = [];
+  lines.forEach((ln, li) => {
+    const x0 = o.anchor === 'middle' ? o.x - ln.w / 2 : o.anchor === 'end' ? o.x - ln.w : o.x;
+    const y = o.y + li * lh;
+    for (const w of ln.words) {
+      const wg = G(g); wg._fill = o.fill; wordEls.push(wg);
+      for (const r of w.runs) {
+        const fill = r.hl ? (o.hl || o.fill) : o.fill, rx = x0 + w.x + r.x;
+        const sub = r.mode !== 'n', s = sub ? o.size * .62 : o.size;
+        const by = y + (r.mode === 'sub' ? o.size * .2 : r.mode === 'sup' ? -o.size * .4 : 0);
+        if (CUSTOM[r.s] !== undefined) glyph(wg, r.s, rx, by, s, o.weight || 600, fill);
+        else el('text', { x: rx, y: by, fill, 'font-family': 'Figtree', 'font-size': s, 'font-weight': o.weight || 600,
+          'font-style': (o.italic || (r.hl && o.hlItalic)) ? 'italic' : 'normal', 'letter-spacing': o.ls || 0, text: r.s }, wg);
+        if (r.mark === 'dot') el('circle', { cx: rx + r.w / 2 + (o.italic ? s * .08 : 0), cy: by - s * .9, r: s * .075, fill: o.dotFill || fill }, wg);
+        if (r.mark === 'bar') el('line', { x1: rx + r.w * .15, x2: rx + r.w * .85, y1: by - s * .64, y2: by - s * .64, stroke: fill, 'stroke-width': s * .065, 'stroke-linecap': 'round' }, wg);
+      }
+    }
+  });
+  return { g, words: wordEls, lines, w: Math.max(...lines.map(l => l.w)), h: lines.length * lh };
+}
+function glyph(p, g, x, y, s, wt, fill) {
+  const m = y - s * .33, sw = s * .055 * (wt / 500) + 1; let d = '';
+  if (g === '≈') { for (const off of [-.09, .09]) { const yy = m + off * s, a = x + .08 * s; d += `M${a} ${yy + .02 * s} C${a + .1 * s} ${yy - .08 * s} ${a + .18 * s} ${yy - .06 * s} ${a + .23 * s} ${yy} S${a + .36 * s} ${yy + .08 * s} ${a + .46 * s} ${yy - .02 * s} `; } }
+  if (g === '→') d = `M${x + .08 * s} ${m} H${x + .8 * s} M${x + .58 * s} ${m - .2 * s} L${x + .8 * s} ${m} L${x + .58 * s} ${m + .2 * s}`;
+  el('path', { d, fill: 'none', stroke: fill, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, p);
+}
+
+/* ------------------------------------------------ brand motifs (UoW design system, 80.94 box) */
+const MOTIF = [
+  'M74.36 34.58C70.41 32.24 66.69 31.65 64.63 31.48C64.43 28.77 64.32 24.07 60.7 20.63C55.94 16.09 50.6 17.04 49.72 17.05C49.85 14.89 49.78 12.97 49.27 11.24C48.4 8.3 46.9 6.39 44.69 4.01C42.97 2.17 40.47 0 40.47 0C40.47 0 37.97 2.17 36.25 4.01C34.04 6.39 32.54 8.3 31.67 11.24C31.15 12.97 31.09 14.89 31.22 17.05C30.34 17.04 25 16.09 20.24 20.63C16.62 24.07 16.51 28.77 16.31 31.48C14.25 31.65 10.53 32.24 6.58 34.58C3.3 36.53 1.19 38.9 0 40.47C1.19 42.04 3.3 44.41 6.58 46.36C10.53 48.7 14.25 49.29 16.31 49.46C16.51 52.16 16.62 56.86 20.24 60.31C25 64.85 30.34 63.9 31.22 63.89C31.09 66.04 31.15 67.97 31.67 69.7C32.54 72.64 34.04 74.54 36.25 76.92C37.97 78.77 40.47 80.94 40.47 80.94C40.47 80.94 42.97 78.77 44.69 76.92C46.9 74.54 48.4 72.64 49.27 69.7C49.78 67.97 49.85 66.04 49.72 63.89C50.6 63.9 55.94 64.85 60.7 60.31C64.32 56.86 64.43 52.16 64.63 49.46C66.69 49.29 70.41 48.7 74.36 46.36C77.64 44.41 79.75 42.04 80.94 40.47C79.75 38.9 77.64 36.53 74.36 34.58Z',
+  'M63.99 0L63.99 17.11L16.95 17.11L16.95 0L0 0L0 80.94L16.95 80.94L16.95 41.94C20.69 37.48 27.89 31.54 40.73 29.3L40.74 29.3C53 31.44 60.12 36.96 63.99 41.34L63.99 80.94L80.94 80.94L80.94 0L63.99 0Z',
+  'M67.14 39.77C57.19 39.77 41.17 23.75 41.17 13.8C41.17 13.41 40.86 13.09 40.47 13.09C40.08 13.09 39.77 13.41 39.77 13.8C39.77 23.75 23.75 39.77 13.8 39.77C13.41 39.77 13.09 40.08 13.09 40.47C13.09 40.86 13.41 41.17 13.8 41.17C23.75 41.17 39.77 57.19 39.77 67.14C39.77 67.53 40.08 67.84 40.47 67.84C40.86 67.84 41.17 67.53 41.17 67.14C41.17 57.19 57.19 41.17 67.14 41.17C67.53 41.17 67.84 40.86 67.84 40.47C67.84 40.08 67.53 39.77 67.14 39.77ZM9.27 40.47C9.27 43.03 7.2 45.1 4.64 45.1C2.08 45.1 0 43.03 0 40.47C0 37.91 2.08 35.83 4.64 35.83C7.2 35.83 9.27 37.91 9.27 40.47ZM80.94 40.47C80.94 43.03 78.86 45.1 76.3 45.1C73.74 45.1 71.67 43.03 71.67 40.47C71.67 37.91 73.74 35.83 76.3 35.83C78.86 35.83 80.94 37.91 80.94 40.47ZM45.1 4.54C45.1 7.05 43.07 9.09 40.56 9.09C38.05 9.09 36.02 7.05 36.02 4.54C36.02 2.03 38.05 0 40.56 0C43.07 0 45.1 2.03 45.1 4.54ZM45.1 76.3C45.1 78.86 43.03 80.94 40.47 80.94C37.91 80.94 35.83 78.86 35.83 76.3C35.83 73.74 37.91 71.67 40.47 71.67C43.03 71.67 45.1 73.74 45.1 76.3Z',
+  'M20.5 80.91L46.8 80.91L52.7 73.63L20.5 80.9L20.5 80.91ZM80.97 35.63L73.2 0L46.35 0L43.29 0L80.97 49.81L80.97 35.63ZM10.88 0L0 0L0 43.05L17.36 80.94L21.29 80.94L21.36 80.92L12.39 2.61L53.57 73.65L52.24 64.16L76.63 64.16L80.97 59.86L80.97 56.61L52.16 63.59L43.29 0L12.09 0L10.88 0Z',
+  'M36.17 56.91C41.86 42.65 42.15 22.9 21.8 0C-23.56 40.57 15.45 78.17 18.19 80.71L18.3 80.79C19.48 79.88 26.87 73.94 32.6 64.18C29.68 72.17 29.82 79.45 29.86 80.56L29.87 80.67C29.87 80.69 29.87 80.7 29.87 80.7C32.48 81.04 69.94 85 72.5 41.57C52.46 40.46 41.82 48.09 36.17 56.91Z',
+  'M31.36 0V47.51H39.63V0ZM28.41 47.51V80.94H31.31V47.51ZM39.63 47.51V80.94H42.54V47.51ZM47 47.51V80.94H49.91V47.51ZM68.22 47.51V80.94H71.12V47.51ZM2.4 47.51V80.94H5.31V47.51ZM22.51 0V47.51H25.42V0ZM11.25 0V47.51H14.15V0ZM44.1 0V47.51H47V0ZM51.47 0V47.51H54.38V0ZM62.74 0V47.51H65.65V0ZM71.12 0V47.51H74.03V0ZM0 0V47.51H2.91V0ZM14.15 47.51V80.94H22.51V47.51ZM54.38 47.51V80.94H62.74V47.51Z',
+  'M74.34 53.43C74.23 47.78 71 42.92 66.32 40.47C71.18 37.92 74.45 32.78 74.34 26.92C74.17 18.65 67.35 12.09 59.08 12.25C56.55 12.3 54.18 12.98 52.11 14.13C51.67 6.12 44.96 -0.16 36.87 0C28.99 0.16 22.65 6.38 22.23 14.13C20 12.89 17.41 12.2 14.67 12.25C6.4 12.42 -0.16 19.25 0 27.51C0.11 33.16 3.35 38.01 8.02 40.47C3.16 43.02 -0.11 48.16 0 54.02C0.17 62.28 7 68.84 15.26 68.68C17.79 68.63 20.16 67.95 22.23 66.8C22.67 74.81 29.38 81.09 37.47 80.93C45.35 80.78 51.69 74.55 52.11 66.8C54.35 68.04 56.93 68.73 59.68 68.68C67.94 68.52 74.5 61.69 74.34 53.43M37.47 55.42C29.2 55.59 22.38 49.02 22.21 40.76C22.05 32.5 28.61 25.67 36.87 25.51C45.14 25.35 51.96 31.91 52.13 40.17C52.29 48.43 45.73 55.26 37.47 55.42Z',
+  'M80.94 0L80.94 31.44L15.43 0L80.94 0ZM0 80.94L0 15.43L31.44 80.94L0 80.94ZM42.96 80.94L80.94 80.94L80.94 42.97L7.91 7.91L42.96 80.94M50.69 69.75L32.54 31.94L70.34 50.09L70.34 69.75L50.69 69.75Z',
+];
+const MQ = 80.94;
+function motif(p, i, cx, cy, size, fill, extra = {}) {
+  const k = size / MQ;
+  return el('path', { d: MOTIF[i], fill, transform: `translate(${cx - size / 2} ${cy - size / 2}) scale(${k})`, ...extra }, p);
+}
+
+/* ============================================================ layers */
+const defs = el('defs', {}, svg);
+defs.innerHTML = `
+  <radialGradient id="paperG" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="${K.paperL}"/><stop offset=".6" stop-color="${K.paper}"/><stop offset="1" stop-color="${K.paperD}"/></radialGradient>
+  <pattern id="gridMinor" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="${K.inkS}" stroke-opacity=".16" stroke-width="1"/></pattern>
+  <pattern id="gridMajor" width="150" height="150" patternUnits="userSpaceOnUse"><path d="M150 0H0V150" fill="none" stroke="${K.inkS}" stroke-opacity=".3" stroke-width="1.5"/></pattern>
+  <pattern id="hatch" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="14" stroke="${K.inkS}" stroke-opacity=".16" stroke-width="3"/></pattern>
+  <radialGradient id="glowG"><stop offset="0" stop-color="${K.bg}" stop-opacity=".55"/><stop offset="1" stop-color="${K.bg}" stop-opacity="0"/></radialGradient>
+  <radialGradient id="glowP"><stop offset="0" stop-color="${K.bp}" stop-opacity=".5"/><stop offset="1" stop-color="${K.bp}" stop-opacity="0"/></radialGradient>
+  <filter id="mblur" x="-20%" y="-5%" width="140%" height="110%"><feGaussianBlur id="mblurStd" stdDeviation="0 0"/></filter>
+  <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+  <clipPath id="clipTitle"><rect x="0" y="-2000" width="1080" height="3030"/></clipPath>
+  <clipPath id="clipPhoto"><rect id="clipPhotoR" x="0" y="1000" width="1080" height="0"/></clipPath>
+  <clipPath id="clipChart"><rect id="clipChartR" x="0" y="995" width="1080" height="0"/></clipPath>
+  <clipPath id="clipQuat"><path id="quatClipPath" d="${MOTIF[0]}"/></clipPath>
+  <clipPath id="clipWhy"><rect x="0" y="0" width="1080" height="728"/></clipPath>
+`;
+const L = {};
+for (const id of ['archive', 'flood', 'title', 'journey', 'eq', 'lab', 'why', 'outro', 'bar', 'hud', 'caption', 'flash']) L[id] = G(svg, { id: 'L-' + id });
+
+/* ============================================================ ARCHIVE (0 – 14.2) */
+const arcBase = G(L.archive);
+el('rect', { x: -40, y: -40, width: 1160, height: 2000, fill: 'url(#paperG)' }, arcBase);
+const stainImg = el('image', { x: 0, y: 0, width: 1080, height: 1920, opacity: .38, style: 'mix-blend-mode:multiply', preserveAspectRatio: 'none' }, arcBase);
+const weave = G(L.archive); // gate weave applied here
+const flick = el('rect', { x: -40, y: -40, width: 1160, height: 2000, fill: '#2d1c0c', opacity: 0 }, L.archive);
+const scratches = G(L.archive);
+const sprockets = G(L.archive);
+for (const side of [0, 1]) {
+  const g = G(sprockets, { class: side ? 'spR' : 'spL' });
+  const x = side ? 1080 - 46 : 0;
+  el('rect', { x, y: -10, width: 46, height: 1940, fill: '#1c1108' }, g);
+  for (let y = -30; y < 1940; y += 76) el('rect', { x: x + 12, y, width: 22, height: 34, rx: 5, fill: K.paperL, opacity: .85 }, g);
+}
+
+// ---- shot 1a: intertitle
+const s1a = G(weave);
+const bord = el('rect', { x: 110, y: 540, width: 860, height: 780, fill: 'none', stroke: K.ink, 'stroke-width': 6, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, s1a);
+const bord2 = el('rect', { x: 132, y: 562, width: 816, height: 736, fill: 'none', stroke: K.ink, 'stroke-width': 1.6, pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, s1a);
+const orn = G(s1a, { opacity: 0 });
+for (const [x, y] of [[110, 540], [970, 540], [110, 1320], [970, 1320]]) el('path', { d: `M${x} ${y - 20} L${x + 20} ${y} L${x} ${y + 20} L${x - 20} ${y} Z`, fill: K.ink }, orn);
+el('line', { x1: 360, x2: 720, y1: 1010, y2: 1010, stroke: K.ink, 'stroke-width': 2 }, orn);
+el('path', { d: 'M540 998 L552 1010 L540 1022 L528 1010 Z', fill: K.ink }, orn);
+const y1923 = T(s1a, '1923', { x: 540, y: 920, size: 290, weight: 900, fill: K.ink, anchor: 'middle', ls: 4 });
+const hillName = T(s1a, 'A. V. HILL', { x: 540, y: 1112, size: 62, weight: 800, fill: K.ink, anchor: 'middle', ls: 14 });
+const hillSub = T(s1a, 'PHYSIOLOGIST  ·  NOBEL PRIZE 1922', { x: 540, y: 1178, size: 26, weight: 700, fill: K.inkS, anchor: 'middle', ls: 6 });
+
+// ---- shot 1b: the Douglas bag
+const s1b = G(weave, { opacity: 0 });
+const lanes = G(s1b);
+const laneEls = [1215, 1250, 1285].map((y, i) => el('line', { x1: 60, x2: 1020, y1: y, y2: y, stroke: K.inkS, 'stroke-width': 4 - i, 'stroke-dasharray': '60 44', opacity: .55 - i * .12 }, lanes));
+const tubeD = 'M540 470 C540 330 690 330 790 250 S980 100 1140 60';
+el('path', { d: tubeD, fill: 'none', stroke: K.ink, 'stroke-width': 34, 'stroke-linecap': 'round' }, s1b);
+el('path', { d: tubeD, fill: 'none', stroke: K.paperD, 'stroke-width': 22, 'stroke-linecap': 'round' }, s1b);
+el('path', { d: tubeD, fill: 'none', stroke: K.ink, 'stroke-width': 22, 'stroke-dasharray': '3 12', opacity: .45 }, s1b);
+const puff = el('path', { d: tubeD, fill: 'none', stroke: K.paperL, 'stroke-width': 12, 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '0.07 2', 'stroke-dashoffset': -1.2 }, s1b);
+const bag = G(s1b);
+const bagD = 'M360 530 Q540 500 720 530 Q765 830 732 1130 Q540 1172 348 1130 Q315 830 360 530 Z';
+el('path', { d: bagD, fill: K.canvas, stroke: K.ink, 'stroke-width': 7, 'stroke-linejoin': 'round' }, bag);
+el('path', { d: bagD, fill: 'url(#hatch)' }, bag);
+el('path', { d: bagD, fill: 'none', stroke: K.inkS, 'stroke-width': 2.5, 'stroke-dasharray': '11 8', transform: 'translate(540 830) scale(.93) translate(-540 -830)' }, bag);
+for (const x of [404, 650]) { el('rect', { x, y: 522, width: 26, height: 620, fill: K.ink, opacity: .78 }, bag); el('rect', { x: x - 5, y: 820, width: 36, height: 30, rx: 4, fill: 'none', stroke: K.ink, 'stroke-width': 5 }, bag); }
+el('rect', { x: 506, y: 476, width: 68, height: 62, rx: 10, fill: '#8a6a3a', stroke: K.ink, 'stroke-width': 5 }, bag);
+el('circle', { cx: 540, cy: 474, r: 24, fill: '#a8844a', stroke: K.ink, 'stroke-width': 5 }, bag);
+el('rect', { x: 568, y: 466, width: 46, height: 14, rx: 6, fill: K.ink }, bag);
+const tag = G(s1b);
+el('line', { x1: 417, y1: 700, x2: 360, y2: 772, stroke: K.ink, 'stroke-width': 3 }, tag);
+el('rect', { x: 190, y: 770, width: 240, height: 124, rx: 10, fill: K.paperL, stroke: K.ink, 'stroke-width': 4 }, tag);
+el('circle', { cx: 360, cy: 790, r: 7, fill: 'none', stroke: K.ink, 'stroke-width': 3 }, tag);
+T(tag, 'DOUGLAS BAG', { x: 310, y: 838, size: 26, weight: 900, fill: K.ink, anchor: 'middle', ls: 3 });
+T(tag, 'C. G. Douglas, 1911', { x: 310, y: 872, size: 21, weight: 600, italic: true, fill: K.inkS, anchor: 'middle' });
+T(s1b, 'BREATHS COLLECTED', { x: 110, y: 330, size: 24, weight: 800, fill: K.inkS, ls: 6 });
+const breathN = el('text', { x: 110, y: 410, fill: K.ink, 'font-family': 'Figtree', 'font-size': 78, 'font-weight': 900, style: 'font-variant-numeric:tabular-nums', text: '00' }, s1b);
+const BREATHS = [3.45, 4.05, 4.6, 5.1, 5.55, 5.95, 6.3];
+
+// ---- shot 2: the graph
+const s2 = G(weave, { opacity: 0 });
+const cam2G = G(s2);
+el('rect', { x: 40, y: 360, width: 1000, height: 980, fill: 'url(#gridMinor)' }, cam2G);
+el('rect', { x: 40, y: 360, width: 1000, height: 980, fill: 'url(#gridMajor)' }, cam2G);
+const GX = nx => 150 + nx * 830, GY = ny => 1250 - ny * 800, GF = nx => smin(0.06 + 1.05 * nx, 0.74, 28);
+el('path', { d: `M150 1250 H1010 M150 1250 V400`, stroke: K.ink, 'stroke-width': 6, fill: 'none', 'stroke-linecap': 'round' }, cam2G);
+el('path', { d: 'M1030 1250 L1004 1236 L1004 1264 Z M150 380 L136 406 L164 406 Z', fill: K.ink }, cam2G);
+T(cam2G, 'Running speed →', { x: 1010, y: 1302, size: 32, weight: 700, italic: true, fill: K.ink, anchor: 'end' });
+const yLab = G(cam2G, { transform: 'translate(112 404) rotate(-90)' });
+T(yLab, 'Oxygen uptake →', { x: 0, y: 0, size: 32, weight: 700, italic: true, fill: K.ink, anchor: 'end' });
+const curve = el('path', { d: '', fill: 'none', stroke: K.ink, 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, cam2G);
+const dots = [];
+for (let i = 0; i < 9; i++) {
+  const nx = .1 + i * .1, ny = GF(nx) + (hash(i + 3) - .5) * .03;
+  const g = G(cam2G, { transform: `translate(${GX(nx)} ${GY(ny)}) scale(0)` });
+  el('circle', { r: 13, fill: K.ink }, g); el('circle', { cx: -4, cy: -4, r: 3.5, fill: K.paperL }, g); el('circle', { cx: 18, cy: -11, r: 3, fill: K.ink }, g);
+  dots.push({ g, nx, ny });
+}
+const pen = G(cam2G);
+el('circle', { r: 22, fill: 'none', stroke: K.inkS, 'stroke-width': 3, opacity: .45 }, pen);
+el('circle', { r: 10, fill: K.ink }, pen);
+const PLAT_Y = GY(.74);
+const bar2 = el('rect', { x: 60, y: -300, width: 1400, height: 26, fill: K.ink }, cam2G);
+const splat = G(cam2G, { opacity: 0 });
+for (let i = 0; i < 14; i++) el('circle', { cx: 160 + i * 62 + hash(i) * 30, cy: PLAT_Y - 36 + hash(i + 9) * 22, r: 3 + hash(i + 20) * 6, fill: K.ink }, splat);
+const ceilLab = T(cam2G, 'C E I L I N G', { x: 1010, y: PLAT_Y - 70, size: 30, weight: 900, fill: K.ink, anchor: 'end' });
+const mox = T(cam2G, 'Hill & Lupton called it the *“maximum oxygen intake”*', { x: 160, y: 520, size: 30, weight: 600, italic: true, fill: K.inkS, hl: K.ink, maxW: 700 });
+const hillMax = T(cam2G, 'Hill’s own: ≈ 4 L of O_{2} per minute', { x: 1010, y: PLAT_Y + 130, size: 26, weight: 700, fill: K.inkS, anchor: 'end' });
+const cam2 = { s: 2.3, free: 0, shake: 0 };
+const pp = { p: .03 };
+
+/* ============================================================ FLOOD + TITLE (13.4 – 20.4) */
+const floodT = el('rect', { x: 0, y: 636, width: 1080, height: 0, fill: K.deep }, L.flood);
+const floodB = el('rect', { x: 0, y: 636, width: 1080, height: 0, fill: K.deep }, L.flood);
+const titleWrap = G(L.title, { opacity: 0 });
+const titleMotif = motif(titleWrap, 0, 900, 1560, 1300, K.deep90);
+const titleZoom = G(titleWrap);
+const titleClip = G(titleZoom, { 'clip-path': 'url(#clipTitle)' });
+const TB = 960, BIG = 270; // title baseline, cap size
+const tPieces = [];
+{
+  const fV = { size: BIG, weight: 800 }, fS = { size: BIG * .5, weight: 800 }, fM = { size: BIG * .5, weight: 600, italic: true };
+  const wV = measure('V', fV), wO = measure('O', fV), w2 = measure('2', fS), wM = measure('max', fM);
+  let x = 540 - (wV + wO + w2 + wM + 10) / 2;
+  const mk = (s, o, dx, dy, fill) => { const t = el('text', { x: dx, y: TB + dy, fill, 'font-family': 'Figtree', 'font-size': o.size, 'font-weight': o.weight, 'font-style': o.italic ? 'italic' : 'normal', text: s }, titleClip); tPieces.push(t); return t; };
+  mk('V', fV, x, 0, K.bg); const vc = x + wV / 2; x += wV;
+  mk('O', fV, x, 0, K.bg); var oCx = x + wO / 2; x += wO;
+  mk('2', fS, x, BIG * .16, K.bg); x += w2 + 10;
+  mk('max', fM, x, BIG * .16, K.white);
+  var titleDot = el('circle', { cx: vc, cy: TB - BIG * .84, r: BIG * .065, fill: K.bp }, titleZoom);
+  var O_CENTER = [oCx, TB - BIG * .36];
+}
+const chips = G(titleZoom);
+const chipEls = [];
+{
+  const labels = ['TAKE IN', 'TRANSPORT', 'USE'], o = { size: 26, weight: 800, ls: 4 };
+  const ws = labels.map(l => measure(l, o) + 44), gap = 18, tot = ws.reduce((a, b) => a + b) + gap * 2;
+  let x = 540 - tot / 2;
+  labels.forEach((l, i) => {
+    const g = G(chips, { opacity: 0 });
+    el('rect', { x, y: 1072, width: ws[i], height: 52, rx: 26, fill: 'none', stroke: K.bp, 'stroke-width': 2.5 }, g);
+    T(g, l, { x: x + ws[i] / 2, y: 1107, ...o, fill: K.bp, anchor: 'middle' });
+    chipEls.push(g); x += ws[i] + gap;
+  });
+}
+
+/* ============================================================ JOURNEY (20.3 – 35.6) */
+const jWrap = G(L.journey, { opacity: 0 });
+el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: K.deep }, jWrap);
+const jFar = G(jWrap);
+{ const r = rng(5); for (let i = 0; i < 7; i++) motif(jFar, [0, 6, 2][i % 3], i % 2 ? 860 : 200, i * 420 + r() * 80, 300 + r() * 160, K.deep90, { opacity: .6 }); }
+const jCam = G(jWrap);
+const world = G(jCam);
+const jFore = G(jWrap);
+{ const r = rng(9); for (let i = 0; i < 16; i++) el('circle', { cx: r() * 1080, cy: i * 420 + r() * 200, r: 30 + r() * 60, fill: K.bp, opacity: .10, filter: 'url(#soft)' }, jFore); }
+// ambient particles
+{ const r = rng(11); for (let i = 0; i < 90; i++) el('circle', { cx: r() * 1080, cy: r() * 4700 - 100, r: 2 + r() * 4, fill: K.bp, opacity: .18 + r() * .2 }, world); }
+// tubes: airway, vessel (lung->heart), artery (heart->muscle), capillary
+function tube(d, w = 92) {
+  const g = G(world);
+  el('path', { d, fill: 'none', stroke: K.bp, 'stroke-opacity': .28, 'stroke-width': w, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  const p = el('path', { d, fill: 'none', stroke: K.deep, 'stroke-width': w - 16, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, g);
+  return p;
+}
+function sampler(path, n = 500) {
+  const len = path.getTotalLength(), pts = [];
+  for (let i = 0; i <= n; i++) { const q = path.getPointAtLength(len * i / n); pts.push([q.x, q.y]); }
+  return s => { const f = clamp(s) * n, i = Math.min(n - 1, Math.floor(f)), k = f - i; return [lerp(pts[i][0], pts[i + 1][0], k), lerp(pts[i][1], pts[i + 1][1], k)]; };
+}
+// airway walls
+const airway = G(world);
+el('path', { d: 'M360 -200 C380 200 440 520 470 730', fill: 'none', stroke: K.bp, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: .8 }, airway);
+el('path', { d: 'M720 -200 C700 200 640 520 610 730', fill: 'none', stroke: K.bp, 'stroke-width': 10, 'stroke-linecap': 'round', opacity: .8 }, airway);
+const airFlow = G(airway);
+for (let i = 0; i < 6; i++) el('line', { x1: 500 + i * 16, x2: 500 + i * 16, y1: 0, y2: 90, stroke: K.bp60, 'stroke-width': 3, 'stroke-linecap': 'round', opacity: .35, class: 'air' }, airFlow);
+const vesselP = tube('M300 1195 C420 1265 650 1265 770 1195 C900 1120 930 1360 780 1470 C600 1600 540 1760 540 1950 L540 2330');
+const arteryP = tube('M560 2620 C600 2300 830 2230 840 2520 L840 3300 C840 3520 540 3500 540 3720 L540 3960');
+const capP = tube('M540 3960 C540 4060 400 4060 160 4062 L1020 4062', 70);
+const vesselS = sampler(vesselP), arteryS = sampler(arteryP), capS = sampler(capP);
+const cellLayer = G(world); // flowing cells sit behind the organs
+// alveoli cluster
+const alv = G(world);
+for (const [x, y, r] of [[560, 800, 84], [460, 900, 112], [640, 890, 100], [540, 1030, 104], [400, 1040, 86], [690, 1020, 92]])
+  el('circle', { cx: x, cy: y, r, fill: K.deep90, stroke: K.bp, 'stroke-width': 3.5 }, alv);
+T(world, 'ALVEOLI', { x: 830, y: 860, size: 26, weight: 800, fill: K.bp, ls: 5 });
+// heart
+const heartG = G(world, { transform: 'translate(540 2640)' });
+const heartIn = G(heartG);
+el('path', { d: 'M40 -250 C40 -380 250 -380 250 -250 L250 -120', fill: 'none', stroke: K.bp, 'stroke-width': 64, 'stroke-linecap': 'round' }, heartIn);
+el('path', { d: 'M0 -170 C130 -290 330 -190 285 20 C250 180 90 290 0 330 C-90 290 -250 180 -285 20 C-330 -190 -130 -290 0 -170 Z', fill: K.bp, transform: 'rotate(-12)' }, heartIn);
+el('path', { d: 'M-10 -150 C-40 0 -20 150 30 290', fill: 'none', stroke: K.deep, 'stroke-width': 8, 'stroke-linecap': 'round', opacity: .55, transform: 'rotate(-12)' }, heartIn);
+el('path', { d: 'M-190 -120 C-230 -40 -230 40 -200 100', fill: 'none', stroke: K.bp60, 'stroke-width': 14, 'stroke-linecap': 'round', opacity: .8, transform: 'rotate(-12)' }, heartIn);
+T(world, 'HEART', { x: 150, y: 2330, size: 26, weight: 800, fill: K.bp, ls: 5 });
+// muscle fibre + mitochondrion
+const fibre = G(world);
+el('rect', { x: 90, y: 4120, width: 900, height: 210, rx: 105, fill: K.deep90, stroke: K.bp, 'stroke-width': 3 }, fibre);
+const fclip = G(fibre);
+for (let x = 120; x < 970; x += 40) el('rect', { x, y: 4126, width: 16, height: 198, fill: K.deep75, opacity: .55 }, fclip);
+const mito = G(world, { transform: 'translate(720 4226)' });
+const mitoBody = el('ellipse', { rx: 118, ry: 58, fill: K.deep, stroke: K.bg, 'stroke-width': 5 }, mito);
+el('path', { d: 'M-92 0 L-72 -34 L-52 30 L-32 -34 L-12 30 L8 -34 L28 30 L48 -34 L68 30 L88 -10', fill: 'none', stroke: K.bg, 'stroke-width': 4, 'stroke-linejoin': 'round' }, mito);
+T(world, 'MUSCLE FIBRE', { x: 190, y: 4390, size: 26, weight: 800, fill: K.bp, ls: 5 });
+T(world, 'MITOCHONDRION', { x: 720, y: 4390, size: 26, weight: 800, fill: K.bg, ls: 5, anchor: 'middle' });
+// red cells
+function rbc(p) { const g = G(p); el('ellipse', { rx: 44, ry: 30, fill: K.bp }, g); el('ellipse', { rx: 24, ry: 13, fill: K.deep75, opacity: .7 }, g); return g; }
+const flowCells = [];
+for (const [sam, n, sp] of [[vesselS, 9, .09], [arteryS, 8, .12], [capS, 6, .1]]) for (let i = 0; i < n; i++) flowCells.push({ g: rbc(cellLayer), sam, off: i / n, sp });
+const trail = el('path', { d: '', fill: 'none', stroke: K.bg, 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: .9 }, world);
+const carrier = rbc(world);
+const burst = el('circle', { cx: 720, cy: 4226, r: 20, fill: 'none', stroke: K.bg, 'stroke-width': 8, opacity: 0 }, world);
+const atps = [0, 1, 2].map(i => { const g = G(world, { opacity: 0 }); el('rect', { x: -44, y: -24, width: 88, height: 48, rx: 24, fill: K.bg }, g); T(g, 'ATP', { x: 0, y: 10, size: 26, weight: 900, fill: K.deep, anchor: 'middle' }); return g; });
+const mol = G(world);
+el('circle', { r: 90, fill: 'url(#glowG)' }, mol);
+el('circle', { cx: -17, r: 26, fill: K.bg }, mol); el('circle', { cx: 17, r: 26, fill: K.bg }, mol);
+T(mol, 'O_{2}', { x: 0, y: 10, size: 30, weight: 900, fill: K.deep, anchor: 'middle' });
+// molecule route as a function of time
+const MOL_T0 = 20.35, MOL_T1 = 29.1;
+function molAt(t) {
+  if (t < 22.1) { const k = ease.io(P(t, 20.35, 22.1)); return [lerp(540, 520, k) + Math.sin(k * 6) * 14, lerp(120, 1000, k)]; }
+  if (t < 22.7) { const k = ease.io(P(t, 22.1, 22.7)); return [lerp(520, 470, k), lerp(1000, 1205, k)]; }
+  if (t < 24.4) { const [x, y] = vesselS(lerp(.14, 1, ease.io(P(t, 22.7, 24.4)))); return [x + 16, y - 26]; }
+  if (t < 25.9) { const k = ease.io(P(t, 24.4, 25.3)); return [lerp(556, 560, k), lerp(2304, 2610, k)]; }
+  if (t < 27.4) { const [x, y] = arteryS(ease.out2(P(t, 25.9, 27.4))); return [x + 16, y - 26]; }
+  if (t < 28.3) { const [x, y] = capS(lerp(0, .62, ease.io(P(t, 27.4, 28.3)))); return [x + 16, y - 26]; }
+  const k = ease.io(P(t, 28.3, 28.95)), [cx, cy] = capS(.62);
+  return [lerp(cx + 16, 720, k), lerp(cy - 26, 4226, k)];
+}
+function carrierAt(t) {
+  if (t < 22.7) return vesselS(.14);
+  if (t < 28.3) { const [x, y] = molAt(t); return [x - 16, y + 26]; }
+  return capS(lerp(.62, 1, P(t, 28.3, 29.8)));
+}
+const trailPts = [], trailLen = [0];
+for (let t = MOL_T0; t <= 28.95; t += .02) { const p = molAt(t); if (trailPts.length) { const q = trailPts[trailPts.length - 1]; trailLen.push(trailLen[trailLen.length - 1] + Math.hypot(p[0] - q[0], p[1] - q[1])); } trailPts.push(p); }
+trail.setAttribute('d', 'M' + trailPts.map(p => p.map(v => v.toFixed(1)).join(' ')).join(' L'));
+const TRAIL_TOTAL = trailLen[trailLen.length - 1];
+const JCAM = [[20.3, [520, 1.0]], [21.4, [760, 1.0]], [22.4, [1050, 1.12]], [22.8, [1160, 1.1]], [24.4, [2330, 1.0]], [25.2, [2620, 1.06]], [25.9, [2640, 1.06]], [27.4, [3880, 1.0]], [28.3, [4140, 1.22]], [29.5, [4215, 1.4]], [30.1, [4215, 1.4]], [31.2, [2280, .33]]];
+
+/* ---- Fick overlay */
+const eqWrap = G(L.eq, { opacity: 0 });
+const eqTitle = T(eqWrap, 'V̇O_{2}max =', { x: 540, y: 600, size: 116, weight: 900, fill: K.white, anchor: 'middle', dotFill: K.bp });
+const pill = (x, y, s, bgc, fg, o) => { const g = G(eqWrap, { opacity: 0 }); const w = measure(s.replace(/_\{|\}/g, ''), o) + 64; el('rect', { x: x - w / 2, y: y - 50, width: w, height: 100, rx: 50, fill: bgc }, g); T(g, s, { x, y: y + 17, ...o, fill: fg, anchor: 'middle' }); g._w = w; return g; };
+const pillA = pill(300, 770, 'cardiac output', K.bg, K.deep, { size: 46, weight: 800 });
+const eqX = T(eqWrap, '×', { x: 562, y: 790, size: 64, weight: 700, fill: K.white, anchor: 'middle' });
+const pillB = pill(800, 770, 'O_{2} extraction', K.bp, K.deep, { size: 46, weight: 800 });
+const hrsv = T(eqWrap, 'heart rate × stroke volume', { x: 300, y: 882, size: 30, weight: 600, fill: K.white, anchor: 'middle' });
+const limit = G(eqWrap, { opacity: 0 });
+el('path', { d: 'M300 920 l-14 22 h28 Z', fill: K.bg }, limit);
+T(limit, '*usually the main limit*', { x: 300, y: 992, size: 36, weight: 800, fill: K.bg, hl: K.bg, hlItalic: true, anchor: 'middle' });
+
+/* ============================================================ LAB (35.5 – 43.3) */
+const labWrap = G(L.lab, { opacity: 0 });
+el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: K.deep }, labWrap);
+const MASK = [319, 340];
+const photoG = G(labWrap, { 'clip-path': 'url(#clipPhoto)' });
+const photoKB = G(photoG);
+el('image', { href: 'assets/lab.jpg', x: -22, y: 250, width: 1125, height: 750, preserveAspectRatio: 'none' }, photoKB);
+el('rect', { x: 0, y: 250, width: 1080, height: 750, fill: K.deep, opacity: .12 }, photoKB);
+const trackG = G(labWrap, { opacity: 0 });
+const brackets = [0, 1, 2, 3].map(() => el('path', { d: '', fill: 'none', stroke: K.bg, 'stroke-width': 6, 'stroke-linecap': 'round' }, trackG));
+const trackChip = G(trackG);
+el('rect', { x: 0, y: -26, width: 300, height: 52, rx: 26, fill: K.deep, opacity: .9 }, trackChip);
+el('circle', { cx: 28, cy: 0, r: 8, fill: K.bg, class: 'blink' }, trackChip);
+T(trackChip, 'Every breath analysed', { x: 48, y: 9, size: 23, weight: 700, fill: K.white });
+const readG = G(labWrap, { opacity: 0 });
+el('rect', { x: 690, y: 280, width: 350, height: 262, rx: 16, fill: K.deep, opacity: .9 }, readG);
+const rows = [['SPEED', ''], ['V̇O_{2}', 'mL·kg^{−1}·min^{−1}'], ['HR', 'b·min^{−1}'], ['RER', '']];
+const readVals = rows.map(([lab, unit], i) => {
+  const y = 340 + i * 58;
+  T(readG, lab, { x: 716, y, size: 24, weight: 800, fill: K.bp, ls: 2, dotFill: K.bp });
+  const v = el('text', { x: 1014, y: y + 2, fill: K.white, 'font-family': 'Figtree', 'font-size': 36, 'font-weight': 900, 'text-anchor': 'end', style: 'font-variant-numeric:tabular-nums', text: '' }, readG);
+  if (unit) T(readG, unit, { x: 1014, y: y + 24, size: 15, weight: 600, fill: K.white, anchor: 'end' });
+  return v;
+});
+const maxBadge = G(readG, { opacity: 0 });
+el('rect', { x: 800, y: 368, width: 70, height: 34, rx: 17, fill: K.bg }, maxBadge);
+T(maxBadge, 'MAX', { x: 835, y: 393, size: 20, weight: 900, fill: K.deep, anchor: 'middle' });
+const chartG = G(labWrap, { 'clip-path': 'url(#clipChart)' });
+el('rect', { x: 40, y: 1008, width: 1000, height: 284, rx: 16, fill: K.white }, chartG);
+const CL = 118, CR = 1004, CT = 1052, CB = 1238;
+const CX = u => lerp(CL, CR, u), CY = v => lerp(CB, CT, v / 1.05);
+for (let k = 1; k < 10; k++) el('line', { x1: CX(k / 10), x2: CX(k / 10), y1: CT, y2: CB, stroke: K.light, 'stroke-width': 1.5 }, chartG);
+el('path', { d: `M${CL} ${CT - 6} V${CB} H${CR}`, fill: 'none', stroke: K.deep, 'stroke-width': 3 }, chartG);
+T(chartG, 'V̇O_{2}', { x: CL - 14, y: CT + 22, size: 26, weight: 800, fill: K.deep, anchor: 'end' });
+T(chartG, 'time → workload rises every minute', { x: CR, y: 1274, size: 19, weight: 600, fill: K.grey, anchor: 'end' });
+const plateau = el('rect', { x: CX(.7), y: CY(.8) - 34, width: 0, height: 68, fill: K.bg60 }, chartG);
+const platLab = T(chartG, 'PLATEAU = V\u0307O_{2}max', { x: CR - 8, y: CY(.8) - 60, size: 22, weight: 900, fill: K.deep, anchor: 'end', ls: 2 });
+const breathDots = G(chartG);
+const TD = []; { const r = rng(21); for (let i = 0; i < 130; i++) { const u = i / 129; TD.push([u, smin(.1 + .95 * u, .8, 22) + (r() + r() + r() - 1.5) * .045]); } }
+const tdEls = TD.map(([u, v]) => el('circle', { cx: CX(u), cy: CY(v), r: 4.5, fill: K.bp, opacity: 0 }, breathDots));
+const fitLine = el('path', { d: '', fill: 'none', stroke: K.deep, 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, chartG);
+const headDot = el('circle', { r: 10, fill: K.bg, stroke: K.deep, 'stroke-width': 3, opacity: 0 }, chartG);
+const lab = { tau: 0, box: 260 };
+// ECG sweep bridges the cut from the Fick equation to the lab (drawn above the lab ground)
+const ecg = el('path', { d: 'M-20 1000 H300 l24 -8 l12 8 h20 l14 -120 l18 200 l14 -80 h26 l30 -18 l26 18 H1100', fill: 'none', stroke: K.bg, 'stroke-width': 6, 'stroke-linejoin': 'round', 'stroke-linecap': 'round', pathLength: 1, 'stroke-dasharray': '1 1', 'stroke-dashoffset': 1 }, L.lab);
+
+/* ============================================================ WHY (43.2 – 50.2) */
+const whyWrap = G(L.why, { opacity: 0 });
+el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: K.bg }, whyWrap);
+const whyMotif = motif(whyWrap, 0, 840, 1500, 1250, K.bg60);
+const whyTop = G(whyWrap);
+const whyA = G(whyTop, { 'clip-path': 'url(#clipWhy)' });
+const hA = T(whyA, 'Higher', { x: 80, y: 560, size: 130, weight: 900, fill: K.deep });
+const hB = T(whyA, 'V̇O_{2}max', { x: 80, y: 700, size: 130, weight: 900, fill: K.deep });
+const hC = T(whyTop, '= better *endurance*', { x: 84, y: 812, size: 70, weight: 800, fill: K.deep, hl: K.deep, hlItalic: true });
+const stat = G(whyWrap, { opacity: 0 });
+const statN = el('text', { x: 74, y: 1000, fill: K.deep, 'font-family': 'Figtree', 'font-size': 300, 'font-weight': 900, style: 'font-variant-numeric:tabular-nums', text: '0%' }, stat);
+T(stat, 'lower risk of death from any cause for each 1-MET higher fitness level', { x: 84, y: 1080, size: 38, weight: 700, fill: K.deep, maxW: 860, lh: 1.2 });
+T(stat, 'Kodama et al., JAMA 2009  ·  1 MET = 3.5 mL·kg^{−1}·min^{−1}', { x: 84, y: 1222, size: 23, weight: 700, fill: K.deep });
+
+/* ============================================================ OUTRO (49.7 – 55.5) */
+const outWrap = G(L.outro, { opacity: 0 });
+el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: K.deep }, outWrap);
+const outMotif = motif(outWrap, 6, 540, 760, 1500, K.deep90, { opacity: .8 });
+const QS = 520, QC = [540, 610];
+const quatPos = G(outWrap, { transform: `translate(${QC[0]} ${QC[1]})` });
+const quat = G(quatPos);
+const quatShadow = G(quat);
+el('path', { d: MOTIF[0], fill: K.bg, transform: `translate(${-QS / 2} ${-QS / 2}) scale(${QS / MQ})` }, quatShadow);
+const quatPhoto = G(quat, { transform: `translate(${-QS / 2} ${-QS / 2}) scale(${QS / MQ})` });
+const quatPhotoIn = G(quatPhoto, { 'clip-path': 'url(#clipQuat)' });
+const quatImg = el('image', { href: 'assets/mask.jpg', x: -2, y: -2, width: MQ + 4, height: MQ + 4, preserveAspectRatio: 'xMidYMid slice' }, quatPhotoIn);
+const find = T(outWrap, 'Find your ceiling.', { x: 540, y: 1070, size: 86, weight: 800, fill: K.bg, anchor: 'middle' });
+const raise = T(outWrap, '*Then raise it.*', { x: 540, y: 1168, size: 86, weight: 800, fill: K.white, hl: K.white, hlItalic: true, anchor: 'middle' });
+const logo = el('image', { href: 'assets/logo-white.png', x: 540 - 200, y: 1262, width: 400, height: 400 / 2.752, opacity: 0 }, outWrap);
+const strip = G(outWrap);
+const stripEls = [];
+{ const h = 46, gap = h * .17, tot = 8 * h + 7 * gap; for (let i = 0; i < 8; i++) { const g = G(strip, { opacity: 0 }); motif(g, i, 540 - tot / 2 + i * (h + gap) + h / 2, 1560, h, K.bg); stripEls.push(g); } }
+const outBlack = el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: '#000', opacity: 0 }, outWrap);
+
+/* ============================================================ protagonist bar + HUD */
+const bar = el('rect', { x: 60, y: PLAT_Y - 13 - 22, width: 1400, height: 26, fill: K.ink, opacity: 0 }, L.bar);
+const hud = G(L.hud, { opacity: 0 });
+const hudTag = T(hud, 'V̇O_{2}max  EXPLAINED', { x: 80, y: 232, size: 24, weight: 800, fill: K.white, ls: 3 });
+const flash = el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: '#000', opacity: 1 }, L.flash);
+const flashL = el('rect', { x: 0, y: 0, width: 1080, height: 1920, fill: K.paperL, opacity: 0 }, L.flash);
+
+/* ============================================================ captions */
+const CAPS = [
+  [0.8, 3.9, '1923. Physiologist A. V. Hill straps a canvas bag to a runner’s back.'],
+  [4.1, 6.3, 'Every breath out is captured.'],
+  [6.8, 9.4, 'Then he makes them run faster… and faster.'],
+  [9.6, 11.1, 'Oxygen use climbs with speed…'],
+  [11.3, 13.0, '…until it doesn’t.'],
+  [14.0, 15.8, 'That ceiling has a name.'],
+  [16.2, 19.6, 'It’s the most oxygen your body can *take in*, *transport* and *use* each minute.'],
+  [20.7, 22.6, 'Your lungs take it in.'],
+  [24.4, 26.2, 'Your heart pumps it out.'],
+  [27.8, 30.1, 'Your muscles use it to make energy.'],
+  [31.2, 35.0, 'In healthy people, the main limit is usually how much blood the heart can pump.'],
+  [36.2, 38.6, 'Today, we measure it breath by breath.'],
+  [39.0, 42.8, 'When oxygen uptake stops rising despite a harder workload, you’ve found the ceiling.'],
+  [43.5, 45.6, 'A higher V̇O_{2}max means better endurance…'],
+  [45.9, 49.4, '…and it’s linked to a longer, healthier life.'],
+];
+const capBuilt = CAPS.map(([t0, t1, s]) => {
+  const g = G(L.caption, { opacity: 0 });
+  const box = el('rect', { rx: 18, fill: K.deep, opacity: .9 }, g);
+  const tx = T(g, s, { x: 540, y: 0, size: 42, weight: 700, fill: K.white, hl: K.bg, anchor: 'middle', maxW: 860, lh: 1.25, dotFill: K.white });
+  const h = tx.h, y0 = 1452 - h + 42 * .25;
+  tx.g.setAttribute('transform', `translate(0 ${y0})`);
+  box.setAttribute('x', 540 - tx.w / 2 - 28); box.setAttribute('width', tx.w + 56);
+  box.setAttribute('y', y0 - 42 - 12); box.setAttribute('height', h + 30);
+  return { t0, t1, g, words: tx.words };
+});
+let capsOn = true;
+
+// clip path for the outro reveal (quatrefoil)
+defs.insertAdjacentHTML('beforeend', `<clipPath id="clipOut"><path id="clipOutP" d="${MOTIF[0]}" transform="translate(540 760) scale(0) translate(-40.47 -40.47)"/></clipPath>`);
+
+/* ============================================================ master timeline */
+const tl = gsap.timeline({ paused: true, onUpdate: () => fx(tl.time()) });
+tl.set({}, {}, DUR);
+const S = (t, target, vars) => tl.set(target, vars, t);
+const A = (t, target, vars) => tl.to(target, vars, t);
+const F = (t, target, from, to) => tl.fromTo(target, from, to, t);
+
+// open: flicker from black
+tl.fromTo(flash, { opacity: 1 }, { keyframes: [{ opacity: .55, duration: .08 }, { opacity: .9, duration: .06 }, { opacity: .25, duration: .1 }, { opacity: .6, duration: .06 }, { opacity: 0, duration: .3 }] }, 0.05);
+A(0.25, bord, { attr: { 'stroke-dashoffset': 0 }, duration: 1.1, ease: 'power2.inOut' });
+A(0.4, bord2, { attr: { 'stroke-dashoffset': 0 }, duration: 1.1, ease: 'power2.inOut' });
+A(1.1, orn, { opacity: 1, duration: .4 });
+F(0.45, y1923.g, { opacity: 0, scale: 1.18, svgOrigin: '540 820' }, { opacity: 1, scale: 1, duration: .9, ease: 'power3.out' });
+A(1.35, y1923.g, { scale: 1.04, svgOrigin: '540 820', duration: 1.8, ease: 'none' });
+F(1.2, hillName.words, { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .5, stagger: .06, ease: 'power3.out' });
+F(1.6, hillSub.words, { opacity: 0 }, { opacity: 1, duration: .4, stagger: .05 });
+// cut to bag
+S(3.1, s1a, { opacity: 0 }); S(3.1, s1b, { opacity: 1 });
+S(3.1, flashL, { opacity: .85 }); A(3.1, flashL, { opacity: 0, duration: .14 });
+S(6.42, flashL, { opacity: .5 }); A(6.42, flashL, { opacity: 0, duration: .12 });
+F(3.1, bag, { scale: .86, svgOrigin: '540 1150' }, { scale: .9, duration: .3, ease: 'power2.out' });
+BREATHS.forEach((b, i) => {
+  const base = .9 + (i + 1) * .022;
+  tl.fromTo(puff, { attr: { 'stroke-dashoffset': -1.05 } }, { attr: { 'stroke-dashoffset': 0 }, duration: .34, ease: 'power1.in', immediateRender: false }, b - .34);
+  A(b, bag, { scaleX: base + .035, scaleY: base + .06, svgOrigin: '540 1150', duration: .16, ease: 'power2.out' });
+  A(b + .16, bag, { scaleX: base, scaleY: base, svgOrigin: '540 1150', duration: .3, ease: 'power2.inOut' });
+});
+F(3.2, tag, { rotation: 8, svgOrigin: '417 700' }, { rotation: -6, duration: 1.4, ease: 'sine.inOut', yoyo: true, repeat: 1 });
+// whip to graph
+S(6.3, L.archive, { attr: { filter: 'url(#mblur)' } });
+A(6.3, '#mblurStd', { attr: { stdDeviation: '60 0' }, duration: .18, ease: 'power2.in' });
+A(6.3, s1b, { x: -1150, duration: .3, ease: 'power3.in' });
+F(6.45, s2, { opacity: 1, x: 1150 }, { x: 0, duration: .4, ease: 'power3.out' });
+A(6.62, '#mblurStd', { attr: { stdDeviation: '0 0' }, duration: .25, ease: 'power2.out' });
+S(6.9, L.archive, { attr: { filter: 'none' } });
+S(6.62, s1b, { opacity: 0 });
+// the pen accelerates, the curve plateaus
+F(6.7, pp, { p: .03 }, { p: .63, duration: 4.6, ease: 'power2.in' });
+A(11.3, pp, { p: .97, duration: 1.0, ease: 'power1.out' });
+F(6.5, cam2, { s: 2.3 }, { s: 1.9, duration: 4.8, ease: 'sine.inOut' });
+A(11.2, bar2, { attr: { y: PLAT_Y - 13 - 22 }, duration: .32, ease: 'power4.in' });
+S(11.52, cam2, { shake: 1 }); A(11.52, cam2, { shake: 0, duration: .4, ease: 'power2.out' });
+S(11.52, splat, { opacity: 1, scale: .4, svgOrigin: `560 ${PLAT_Y}` }); A(11.52, splat, { opacity: 0, scale: 1.3, svgOrigin: `560 ${PLAT_Y}`, duration: .7, ease: 'power2.out' });
+F(11.7, ceilLab.words, { opacity: 0 }, { opacity: 1, duration: .3 });
+A(12.0, cam2, { s: 1, free: 1, duration: 1.1, ease: 'power3.inOut' });
+F(12.5, mox.words, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: .45, stagger: .04 });
+F(12.8, hillMax.words, { opacity: 0 }, { opacity: 1, duration: .35, stagger: .03 });
+// colour flood: the ceiling becomes the brand
+S(13.35, bar, { opacity: 1 }); S(13.35, bar2, { opacity: 0 });
+A(13.4, bar, { attr: { fill: K.bg }, duration: .3 });
+A(13.45, floodT, { attr: { y: 0, height: PLAT_Y - 22 }, duration: .75, ease: 'expo.inOut' });
+A(13.45, floodB, { attr: { height: 1920 }, duration: .75, ease: 'expo.inOut' });
+A(13.5, '.spL', { x: -60, duration: .5, ease: 'power2.in' }); A(13.5, '.spR', { x: 60, duration: .5, ease: 'power2.in' });
+S(14.25, L.archive, { opacity: 0 });
+A(14.0, bar, { attr: { y: 1030, x: 90, width: 900, height: 22 }, duration: .7, ease: 'power3.inOut' });
+S(14.2, titleWrap, { opacity: 1 });
+F(14.2, titleMotif, { opacity: 0 }, { opacity: 1, duration: .8 });
+F(14.55, tPieces, { y: BIG * 1.25 }, { y: 0, duration: .75, stagger: .08, ease: 'back.out(1.5)' });
+F(15.3, titleDot, { attr: { cy: TB - BIG * .84 - 420 }, opacity: 0 }, { attr: { cy: TB - BIG * .84 }, opacity: 1, duration: .55, ease: 'bounce.out' });
+F(14.6, hud, { opacity: 0 }, { opacity: 1, duration: .5 });
+[17.6, 18.2, 18.75].forEach((t, i) => F(t, chipEls[i], { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: .35, ease: 'back.out(2)' }));
+// zoom through the O into the body
+A(19.65, [titleZoom, L.bar], { scale: 38, svgOrigin: `${O_CENTER[0]} ${O_CENTER[1]}`, duration: .8, ease: 'expo.in' });
+A(19.65, titleMotif, { opacity: 0, duration: .5 });
+S(20.4, titleWrap, { opacity: 0 }); S(20.4, L.bar, { opacity: 0, scale: 1 });
+S(20.3, jWrap, { opacity: 1 });
+F(20.3, jCam, { opacity: 0 }, { opacity: 1, duration: .35 });
+// journey beats
+S(29.15, burst, { opacity: 1 }); A(29.15, burst, { attr: { r: 190 }, opacity: 0, duration: .8, ease: 'power2.out' });
+A(29.1, mitoBody, { attr: { fill: K.deep75, 'stroke-width': 9 }, duration: .3 });
+atps.forEach((g, i) => { const a = -Math.PI / 2 + (i - 1) * .75; S(29.2 + i * .08, g, { opacity: 1, x: 720, y: 4226, scale: .3 }); A(29.2 + i * .08, g, { x: 720 + Math.cos(a) * 230, y: 4226 + Math.sin(a) * 200, scale: 1, duration: .8, ease: 'back.out(1.6)' }); A(30.3, g, { opacity: 0, duration: .4 }); });
+// Fick
+A(30.9, jWrap, { opacity: .22, duration: .7 });
+S(31.0, eqWrap, { opacity: 1 });
+F(31.0, eqTitle.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .55, stagger: .08, ease: 'power3.out' });
+F(31.45, pillA, { opacity: 0, scale: .6, svgOrigin: '300 770' }, { opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' });
+F(31.7, eqX.words, { opacity: 0 }, { opacity: 1, duration: .3 });
+F(31.85, pillB, { opacity: 0, scale: .6, svgOrigin: '800 770' }, { opacity: 1, scale: 1, duration: .45, ease: 'back.out(1.8)' });
+F(32.3, hrsv.words, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: .35, stagger: .05 });
+F(33.0, limit, { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .45, ease: 'back.out(2)' });
+A(33.0, pillB, { opacity: .45, duration: .4 });
+tl.to(pillA, { scale: 1.08, svgOrigin: '300 770', duration: .18, yoyo: true, repeat: 3, ease: 'power1.inOut' }, 33.1);
+// ECG sweep, reveal the lab
+A(35.05, ecg, { attr: { 'stroke-dashoffset': 0 }, duration: .5, ease: 'power2.inOut' });
+A(35.2, [eqWrap, jWrap], { opacity: 0, duration: .35 });
+S(35.45, labWrap, { opacity: 1 });
+A(35.5, '#clipPhotoR', { attr: { y: 250, height: 745 }, duration: .6, ease: 'power3.inOut' });
+A(35.5, '#clipChartR', { attr: { height: 300 }, duration: .6, ease: 'power3.inOut' });
+A(35.75, ecg, { opacity: 0, duration: .3 });
+F(35.5, photoKB, { scale: 1.0, svgOrigin: `${MASK[0]} ${MASK[1]}` }, { scale: 1.1, duration: 7.8, ease: 'none' });
+F(36.0, trackG, { opacity: 0 }, { opacity: 1, duration: .2 });
+F(36.0, lab, { box: 260 }, { box: 78, duration: .5, ease: 'power3.out' });
+F(36.4, readG, { opacity: 0, x: 40 }, { opacity: 1, x: 0, duration: .45, ease: 'power3.out' });
+F(36.0, lab, { tau: 0 }, { tau: 1, duration: 4.8, ease: 'none' });
+A(40.8, plateau, { attr: { width: CX(1) - CX(.7) }, duration: .45, ease: 'power3.out' });
+F(40.9, platLab.words, { opacity: 0 }, { opacity: 1, duration: .3, stagger: .05 });
+F(40.95, maxBadge, { opacity: 0, scale: .5, svgOrigin: '835 385' }, { opacity: 1, scale: 1, duration: .35, ease: 'back.out(2)' });
+// the ceiling bar returns and slams onto the plateau
+S(41.05, L.bar, { opacity: 1 });
+S(41.05, bar, { attr: { x: CX(.66), y: -60, width: CR - CX(.66), height: 16, fill: K.bg } }); A(41.05, bar, { attr: { y: CY(.8) - 34 - 16 }, duration: .26, ease: 'power4.in' });
+S(41.31, chartG, { y: 12 }); A(41.31, chartG, { y: 0, duration: .45, ease: 'elastic.out(1, .4)' });
+// bar floods to bright green
+A(42.75, bar, { attr: { x: 0, y: 0, width: 1080, height: 1920 }, duration: .55, ease: 'power3.inOut' });
+S(43.3, whyWrap, { opacity: 1 }); S(43.3, labWrap, { opacity: 0 }); S(43.3, L.bar, { opacity: 0 });
+S(43.3, hudTag.g.querySelectorAll('text'), { attr: { fill: K.deep } }); S(43.3, hudTag.g.querySelectorAll('circle'), { attr: { fill: K.deep } });
+F(43.35, [hA.g, hB.g], { y: 280 }, { y: 0, duration: .7, stagger: .12, ease: 'power4.out' });
+F(44.3, hC.words, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: .45, stagger: .08, ease: 'power3.out' });
+A(45.6, whyTop, { y: -150, scale: .82, svgOrigin: '80 400', duration: .6, ease: 'power3.inOut' });
+F(45.75, stat, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .5, ease: 'power3.out' });
+F(43.3, whyMotif, { rotation: 0, svgOrigin: '840 1500' }, { rotation: 22, duration: 7, ease: 'none' });
+// quatrefoil reveal into the outro
+S(49.7, outWrap, { opacity: 1 });
+S(49.7, outWrap, { attr: { 'clip-path': 'url(#clipOut)' } });
+F(49.7, '#clipOutP', { attr: { transform: 'translate(540 760) scale(0) translate(-40.47 -40.47)' } }, { attr: { transform: 'translate(540 760) scale(40) translate(-40.47 -40.47)' }, duration: .65, ease: 'power3.in' });
+S(50.36, outWrap, { attr: { 'clip-path': 'none' } });
+S(50.36, whyWrap, { opacity: 0 }); S(50.36, hud, { opacity: 0 });
+F(50.3, quat, { scale: 0, svgOrigin: '0 0' }, { scale: 1, svgOrigin: '0 0', duration: .8, ease: 'back.out(1.4)' });
+F(50.7, quatShadow, { x: 0, y: 0 }, { x: -QS * .034, y: QS * .034, duration: .5, ease: 'power2.out' });
+F(50.3, quatImg, { scale: 1.12, svgOrigin: '40.47 40.47' }, { scale: 1.0, duration: 5, ease: 'power1.out' });
+F(51.0, find.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .5, stagger: .08, ease: 'power3.out' });
+F(51.8, raise.words, { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .5, stagger: .08, ease: 'power3.out' });
+F(52.6, logo, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: .6, ease: 'power2.out' });
+stripEls.forEach((g, i) => F(52.9 + i * .07, g, { opacity: 0, scale: 0, svgOrigin: `${540 - (8 * 46 + 7 * 46 * .17) / 2 + i * 46 * 1.17 + 23} 1583` }, { opacity: 1, scale: 1, duration: .45, ease: 'back.out(2)' }));
+F(49.7, outMotif, { rotation: -10, svgOrigin: '540 720' }, { rotation: 8, duration: 5.8, ease: 'none' });
+A(55.0, outBlack, { opacity: 1, duration: .5, ease: 'power1.in' });
+
+
+/* ============================================================ per-frame effects */
+const grainCv = document.getElementById('grain'), gctx = grainCv.getContext('2d');
+const GRAIN = [];
+{ const r = rng(3); for (let k = 0; k < 8; k++) { const id = gctx.createImageData(360, 640); for (let i = 0; i < id.data.length; i += 4) { const v = 128 + (r() - .5) * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 255; } GRAIN.push(id); } }
+{ // aged paper blotches
+  const c = document.createElement('canvas'); c.width = 18; c.height = 32; const g = c.getContext('2d'); const id = g.createImageData(18, 32); const r = rng(8);
+  for (let i = 0; i < id.data.length; i += 4) { const v = 150 + r() * 105; id.data[i] = v; id.data[i + 1] = v * .93; id.data[i + 2] = v * .8; id.data[i + 3] = 255; }
+  g.putImageData(id, 0, 0); const big = document.createElement('canvas'); big.width = 540; big.height = 960; const bg = big.getContext('2d'); bg.imageSmoothingQuality = 'high'; bg.drawImage(c, 0, 0, 540, 960);
+  stainImg.setAttribute('href', big.toDataURL('image/jpeg', .8));
+}
+const vig = document.getElementById('vig');
+let lastGrain = -1;
+function fx(t) {
+  const f = Math.round(t * FPS);
+  // grain + vignette strength follow the era
+  const archive = t < 14.2;
+  grainCv.style.opacity = archive ? .32 : .12;
+  vig.style.opacity = archive ? 1 : .35;
+  const gi = f % 8; if (gi !== lastGrain) { gctx.putImageData(GRAIN[gi], 0, 0); lastGrain = gi; }
+  // gate weave, flicker, scratches
+  if (archive) {
+    const r = rng(f * 31 + 1);
+    weave.setAttribute('transform', `translate(${(r() - .5) * 5} ${(r() - .5) * 5})`);
+    flick.setAttribute('opacity', (.03 + .07 * r()).toFixed(3));
+    while (scratches.firstChild) scratches.firstChild.remove();
+    const n = r() < .5 ? 1 : r() < .75 ? 2 : 0;
+    for (let i = 0; i < n; i++) { const x = 90 + r() * 900; el('line', { x1: x, x2: x + (r() - .5) * 8, y1: r() * 700, y2: 900 + r() * 1000, stroke: r() < .6 ? '#2d1c0c' : '#fff8e6', 'stroke-width': 1 + r() * 1.5, opacity: .35 }, scratches); }
+    for (let i = 0, d = Math.floor(r() * 5); i < d; i++) el('circle', { cx: r() * 1080, cy: r() * 1920, r: 1 + r() * 3.5, fill: '#2d1c0c', opacity: .5 }, scratches);
+  }
+  // shot 1b
+  if (t >= 3.1 && t < 6.7) {
+    const u = t - 3.1; laneEls.forEach((l, i) => l.setAttribute('stroke-dashoffset', (u * (700 + u * 260) * (1 + i * .15)).toFixed(1)));
+    let n = 0; for (const b of BREATHS) if (t >= b) n++; breathN.textContent = String(n).padStart(2, '0');
+  }
+  // shot 2: pen, curve, dots, camera
+  if (t >= 6.4 && t < 14.3) {
+    const p = pp.p, px = GX(p), py = GY(GF(p));
+    let d = ''; for (let q = .03; q <= p + 1e-6; q += .005) d += (d ? 'L' : 'M') + GX(q).toFixed(1) + ' ' + (GY(GF(q)) + Math.sin(q * 70) * 1.4).toFixed(1);
+    curve.setAttribute('d', d); pen.setAttribute('transform', `translate(${px} ${py})`);
+    for (const dt of dots) { const k = clamp((p - dt.nx) / .025); dt.g.setAttribute('transform', `translate(${GX(dt.nx)} ${GY(dt.ny)}) scale(${ease.back(k).toFixed(3)})`); }
+    const cx = lerp(px + 70, 540, cam2.free), cy = lerp(py, 960, cam2.free);
+    const sh = cam2.shake * 14, ox = Math.sin(t * 97) * sh, oy = Math.cos(t * 83) * sh;
+    cam2G.setAttribute('transform', `translate(${540 + ox} ${960 + oy}) scale(${cam2.s}) translate(${-cx} ${-cy})`);
+  }
+  // journey
+  if (t >= 20.2 && t < 35.6) {
+    const [cy, cs] = kf(t, JCAM);
+    jCam.setAttribute('transform', `translate(540 960) scale(${cs}) translate(-540 ${-cy})`);
+    jFar.setAttribute('transform', `translate(0 ${(-cy * .3 + 300).toFixed(1)})`);
+    jFore.setAttribute('transform', `translate(0 ${(-cy * 1.5 + 1400).toFixed(1)})`);
+    const [mx, my] = molAt(t);
+    mol.setAttribute('transform', `translate(${mx} ${my}) scale(${t < 28.95 ? 1 : Math.max(0, 1 - (t - 28.95) / .25)})`);
+    const [cx2, cy2] = carrierAt(t);
+    carrier.setAttribute('transform', `translate(${cx2} ${cy2})`); carrier.setAttribute('opacity', t < 29.5 ? 1 : Math.max(0, 1 - (t - 29.5) / .3));
+    for (const c of flowCells) { const s = ((t - 20) * c.sp + c.off) % 1; const [x, y] = c.sam(s); c.g.setAttribute('transform', `translate(${x} ${y})`); }
+    // heart beats at 120 bpm while the cell is inside
+    const m = ((t - 24) % .5 + .5) % .5, beat = (t > 23.8 && t < 28) ? Math.exp(-Math.pow(m / .06, 2)) + .55 * Math.exp(-Math.pow((m - .18) / .05, 2)) : 0;
+    heartIn.setAttribute('transform', `scale(${1 + .07 * beat})`);
+    // trail
+    let i = 0; const tt = Math.min(t, 28.95); const idx = Math.max(0, Math.floor((tt - MOL_T0) / .02));
+    const len = trailLen[Math.min(idx, trailLen.length - 1)] || 0;
+    trail.setAttribute('stroke-dasharray', `${len.toFixed(1)} ${TRAIL_TOTAL + 10}`);
+    for (const a of airFlow.children) { a.setAttribute('transform', `translate(0 ${((t * 520 + i * 90) % 800).toFixed(1)})`); i++; }
+  }
+  // lab: readouts, chart, tracking box
+  if (t >= 35.4 && t < 43.4) {
+    const u = lab.tau, stage = Math.min(10, Math.floor(u * 10) + 1);
+    const g = (smin(.1 + .95 * u, .8, 22) - .1) / (.8 - .1);
+    readVals[0].textContent = `${7 + stage} km/h`;
+    readVals[1].textContent = (25 + 27.2 * g).toFixed(1);
+    readVals[2].textContent = String(Math.round(118 + 78 * Math.min(1, u * 1.04)));
+    readVals[3].textContent = (0.84 + .31 * Math.pow(u, 1.6)).toFixed(2);
+    tdEls.forEach((e, k) => e.setAttribute('opacity', TD[k][0] <= u ? .85 : 0));
+    let d = ''; for (let q = 0; q <= u + 1e-6; q += .005) d += (d ? 'L' : 'M') + CX(q).toFixed(1) + ' ' + CY(smin(.1 + .95 * q, .8, 22)).toFixed(1);
+    fitLine.setAttribute('d', d);
+    headDot.setAttribute('cx', CX(u)); headDot.setAttribute('cy', CY(smin(.1 + .95 * u, .8, 22))); headDot.setAttribute('opacity', u > 0 && u < 1 ? 1 : 0);
+    const b = lab.box || 78, [x, y] = MASK, c = 26;
+    const corners = [[x - b, y - b, 1, 1], [x + b, y - b, -1, 1], [x - b, y + b, 1, -1], [x + b, y + b, -1, -1]];
+    corners.forEach(([cx, cy, sx, sy], k) => brackets[k].setAttribute('d', `M${cx} ${cy + sy * c} V${cy} H${cx + sx * c}`));
+    trackChip.setAttribute('transform', `translate(${x - b} ${y + b + 44})`);
+    trackChip.querySelector('.blink').setAttribute('opacity', (Math.sin(t * 9) > 0) ? 1 : .35);
+  }
+  if (t >= 45.7 && t < 50.4) statN.textContent = Math.round(13 * ease.out(P(t, 45.8, 46.9))) + '%';
+  // captions
+  for (const c of capBuilt) {
+    const on = capsOn && t >= c.t0 - .12 && t < c.t1 + .12;
+    if (!on) { c.g.setAttribute('opacity', 0); continue; }
+    c.g.setAttribute('opacity', Math.min(P(t, c.t0 - .12, c.t0 + .05), 1 - P(t, c.t1 - .02, c.t1 + .12)).toFixed(3));
+    const span = (c.t1 - c.t0) * .78, n = c.words.length;
+    c.words.forEach((w, k) => { const wt = c.t0 + span * k / n; w.setAttribute('opacity', t >= wt ? 1 : .35); });
+  }
+  ui(t);
+}
+
+/* ============================================================ workspace UI */
+const SHOTS = [
+  [0, 'The origin', 'Silent-film intertitle, then the Douglas bag filling breath by breath.', [0, 1]],
+  [6.4, 'The discovery', 'The pen speeds up, the line rises, and a ceiling slams down.', [2, 3, 4]],
+  [13.4, 'The name', 'The ceiling turns into the brand, and V̇O₂max rises from behind it.', [5, 6]],
+  [20.3, 'The journey', 'Through the O: one oxygen molecule from lungs to heart to mitochondrion.', [7, 8, 9]],
+  [30.9, 'The limit', 'The Fick principle. Cardiac output is usually the main limit.', [10]],
+  [35.4, 'The modern test', 'Winchester lab, breath-by-breath data, the plateau and the ceiling bar.', [11, 12]],
+  [43.2, 'Why it matters', 'Endurance, and 13% lower all-cause mortality per 1-MET.', [13, 14]],
+  [49.7, 'The close', 'Quatrefoil photo, “Find your ceiling. Then raise it.”, logo and motif strip.', []],
+];
+const shotsEl = document.getElementById('shots');
+const fmt = s => { const m = Math.floor(s / 60), r = s - m * 60; return `${String(m).padStart(2, '0')}:${r.toFixed(2).padStart(5, '0')}`; };
+SHOTS.forEach(([t, name, desc, caps], i) => {
+  const li = document.createElement('li');
+  const b = document.createElement('button'); b.type = 'button';
+  const vo = caps.map(k => CAPS[k][2].replace(/\*/g, '').replace(/_\{2\}/g, '₂')).join(' ');
+  b.innerHTML = `<span class="st">${fmt(t)}</span><span class="sn">${name}</span><span class="vo">${vo ? '“' + vo + '”' : desc}</span>`;
+  b.addEventListener('click', () => { seek(t + .02); });
+  li.appendChild(b); shotsEl.appendChild(li);
+});
+const scrub = document.getElementById('scrub'), fill = document.getElementById('fill'), tc = document.getElementById('tc');
+const wrap = document.getElementById('scrubwrap');
+SHOTS.forEach(([t]) => { if (!t) return; const d = document.createElement('div'); d.className = 'tick'; d.style.left = (t / DUR * 100) + '%'; wrap.insertBefore(d, scrub); });
+let lastShot = -1;
+function ui(t) {
+  scrub.value = t; fill.style.width = (t / DUR * 100) + '%';
+  tc.innerHTML = `${fmt(t)} <small>/ ${fmt(DUR)}</small>`;
+  let s = 0; SHOTS.forEach(([st], i) => { if (t >= st) s = i; });
+  if (s !== lastShot) { [...shotsEl.children].forEach((li, i) => li.classList.toggle('on', i === s)); lastShot = s; }
+}
+const playBtn = document.getElementById('play'), poster = document.getElementById('poster');
+let playing = false;
+function setPlaying(p) {
+  playing = p; poster.hidden = true;
+  playBtn.innerHTML = p ? '&#10074;&#10074;' : '&#9654;'; playBtn.setAttribute('aria-label', p ? 'Pause' : 'Play');
+  if (p) { if (tl.time() >= DUR - .01) tl.time(0); tl.play(); } else tl.pause();
+}
+tl.eventCallback('onComplete', () => { if (document.getElementById('loop').checked) { tl.time(0); tl.play(); } else setPlaying(false); });
+function seek(t) { tl.pause(); playing = false; playBtn.innerHTML = '&#9654;'; tl.time(clamp(t, 0, DUR), false); fx(tl.time()); poster.hidden = true; }
+playBtn.addEventListener('click', () => setPlaying(!playing));
+poster.addEventListener('click', () => { tl.time(0); setPlaying(true); });
+scrub.addEventListener('input', () => seek(parseFloat(scrub.value)));
+document.getElementById('back').addEventListener('click', () => seek(Math.round(tl.time() * FPS - 1) / FPS));
+document.getElementById('fwd').addEventListener('click', () => seek(Math.round(tl.time() * FPS + 1) / FPS));
+document.getElementById('cc').addEventListener('change', e => { capsOn = e.target.checked; fx(tl.time()); });
+document.getElementById('safeT').addEventListener('change', e => { document.getElementById('safe').hidden = !e.target.checked; });
+document.getElementById('speed').addEventListener('change', e => tl.timeScale(parseFloat(e.target.value)));
+document.addEventListener('keydown', e => {
+  if (e.target.closest('select, input[type=checkbox]')) return;
+  if (e.code === 'Space' && !e.target.closest('button')) { e.preventDefault(); setPlaying(!playing); }
+  if (e.code === 'ArrowLeft') seek(Math.round(tl.time() * FPS - 1) / FPS);
+  if (e.code === 'ArrowRight') seek(Math.round(tl.time() * FPS + 1) / FPS);
+});
+
+/* ============================================================ export API + start */
+window.reel = {
+  duration: DUR, fps: FPS,
+  seek(t) { tl.time(clamp(t, 0, DUR), false); fx(tl.time()); },
+  ready: document.fonts.ready,
+};
+if (location.hash === '#render') document.body.classList.add('render');
+// poster frame: the title, fully formed
+const POSTER = 19.3;
+tl.time(POSTER, false); fx(POSTER);
+poster.hidden = false;
+if (matchMedia('(prefers-reduced-motion: reduce)').matches) document.getElementById('speed').value = '0.5';
+})();
+</script>
